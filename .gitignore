@@ -62,6 +62,10 @@ htmlcov/
 *.rar
 *.tar
 *.zip
+# Allow Gradle wrapper JAR
+!android/gradle/wrapper/gradle-wrapper.jar
+!android/gradle/wrapper/gradle-wrapper.properties
+!android/gradle/wrapper/gradle-wrapper.lock
 
 # Logs
 logs
