@@ -9,7 +9,7 @@ import {
   checkWin, 
   isBoardFull 
 } from '../utils/gameLogic';
-import { findBestMove } from '../utils/aiLogic';
+import { findBestMove, AIDifficulty } from '../utils/aiLogic';
 
 const TIMER_DURATION = 10; // 10 seconds per turn
 
@@ -22,6 +22,7 @@ const Game: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number>(TIMER_DURATION);
   const [timerActive, setTimerActive] = useState<boolean>(true);
   const [timerEnabled, setTimerEnabled] = useState<boolean>(false); // Timer disabled by default
+  const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('intermediate');
   const timerAnimation = useRef(new Animated.Value(1)).current;
   
   // AI is always player 2 (white)
@@ -60,7 +61,7 @@ const Game: React.FC = () => {
     
     // Add a small delay to simulate AI "thinking"
     setTimeout(() => {
-      const { row, col } = findBestMove(boardState, AI_PLAYER);
+      const { row, col } = findBestMove(boardState, AI_PLAYER, aiDifficulty);
       makeMove(row, col, AI_PLAYER, boardState);
       setAiThinking(false);
     }, 500);
@@ -103,6 +104,10 @@ const Game: React.FC = () => {
   const toggleAIMode = () => {
     setVsAI(!vsAI);
     handleRestart();
+  };
+ 
+  const toggleAIDifficulty = () => {
+    setAiDifficulty((prev) => (prev === 'intermediate' ? 'expert' : 'intermediate'));
   };
   
   // Toggle timer on/off
@@ -248,7 +253,18 @@ const Game: React.FC = () => {
             thumbColor={vsAI ? '#f5dd4b' : '#f4f3f4'}
           />
         </View>
-        
+        {vsAI && (
+          <View style={styles.switchRow}>
+            <Text style={styles.switchText}>AI 난이도: {aiDifficulty === 'intermediate' ? '중급' : '고급'}</Text>
+            <Switch
+              value={aiDifficulty === 'expert'}
+              onValueChange={toggleAIDifficulty}
+              trackColor={{ false: '#767577', true: '#81b0ff' }}
+              thumbColor={aiDifficulty === 'expert' ? '#f5dd4b' : '#f4f3f4'}
+            />
+          </View>
+        )}
+
         <View style={styles.switchRow}>
           <Text style={styles.switchText}>타이머 {timerEnabled ? '끄기' : '켜기'}</Text>
           <Switch
