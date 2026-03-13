@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Switch, Text, Animated } from 'react-native';
+import { Audio } from 'expo-av';
 import Board from './Board';
 import GameStatus from './GameStatus';
 import { 
@@ -24,10 +25,87 @@ const Game: React.FC = () => {
   const [timerEnabled, setTimerEnabled] = useState<boolean>(false); // Timer disabled by default
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('intermediate');
   const timerAnimation = useRef(new Animated.Value(1)).current;
+  const winSoundRef = useRef<Audio.Sound | null>(null);
+  const loseSoundRef = useRef<Audio.Sound | null>(null);
+  const lastPlayedWinnerRef = useRef<number | null>(null);
   
   // AI is always player 2 (white)
   const AI_PLAYER = 2;
   const HUMAN_PLAYER = 1;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const winResult = await Audio.Sound.createAsync(
+          require('../../assets/sounds/tada.mp3'),
+          { shouldPlay: false }
+        );
+        const loseResult = await Audio.Sound.createAsync(
+          require('../../assets/sounds/lose.mp3'),
+          { shouldPlay: false }
+        );
+
+        if (cancelled) {
+          await winResult.sound.unloadAsync();
+          await loseResult.sound.unloadAsync();
+          return;
+        }
+
+        winSoundRef.current = winResult.sound;
+        loseSoundRef.current = loseResult.sound;
+      } catch {
+        // Ignore sound loading errors
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      (async () => {
+        try {
+          if (winSoundRef.current) {
+            await winSoundRef.current.unloadAsync();
+          }
+          if (loseSoundRef.current) {
+            await loseSoundRef.current.unloadAsync();
+          }
+        } catch {
+          // Ignore unload errors
+        } finally {
+          winSoundRef.current = null;
+          loseSoundRef.current = null;
+        }
+      })();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (winner === null || winner === 0) {
+      lastPlayedWinnerRef.current = winner;
+      return;
+    }
+
+    if (lastPlayedWinnerRef.current === winner) {
+      return;
+    }
+
+    lastPlayedWinnerRef.current = winner;
+
+    (async () => {
+      try {
+        const shouldPlayLose = vsAI && winner === AI_PLAYER;
+        const soundToPlay = shouldPlayLose ? loseSoundRef.current : winSoundRef.current;
+
+        if (!soundToPlay) return;
+
+        await soundToPlay.setPositionAsync(0);
+        await soundToPlay.playAsync();
+      } catch {
+        // Ignore playback errors
+      }
+    })();
+  }, [winner, vsAI]);
 
   // Make a move and check for game end conditions
   const makeMove = (row: number, col: number, player: number, boardState: number[][]) => {
@@ -93,6 +171,7 @@ const Game: React.FC = () => {
     setBoard(newBoard);
     setCurrentPlayer(HUMAN_PLAYER); // Human always starts with black stones
     setWinner(null);
+    lastPlayedWinnerRef.current = null;
     
     // If playing against AI and AI goes first, make AI move
     if (vsAI && currentPlayer === AI_PLAYER) {
