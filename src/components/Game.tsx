@@ -18,7 +18,7 @@ const Game: React.FC = () => {
   const [board, setBoard] = useState<number[][]>(initializeBoard());
   const [currentPlayer, setCurrentPlayer] = useState<number>(1); // 1 for black, 2 for white
   const [winner, setWinner] = useState<number | null>(null);
-  const [vsAI, setVsAI] = useState<boolean>(false);
+  const [vsAI, setVsAI] = useState<boolean>(true);
   const [aiThinking, setAiThinking] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(TIMER_DURATION);
   const [timerActive, setTimerActive] = useState<boolean>(true);
@@ -27,6 +27,7 @@ const Game: React.FC = () => {
   const timerAnimation = useRef(new Animated.Value(1)).current;
   const winSoundRef = useRef<Audio.Sound | null>(null);
   const loseSoundRef = useRef<Audio.Sound | null>(null);
+  const stoneSoundRef = useRef<Audio.Sound | null>(null);
   const lastPlayedWinnerRef = useRef<number | null>(null);
   
   // AI is always player 2 (white)
@@ -46,15 +47,21 @@ const Game: React.FC = () => {
           require('../../assets/sounds/lose.mp3'),
           { shouldPlay: false }
         );
+        const stoneResult = await Audio.Sound.createAsync(
+          require('../../assets/sounds/stone.mp3'),
+          { shouldPlay: false }
+        );
 
         if (cancelled) {
           await winResult.sound.unloadAsync();
           await loseResult.sound.unloadAsync();
+          await stoneResult.sound.unloadAsync();
           return;
         }
 
         winSoundRef.current = winResult.sound;
         loseSoundRef.current = loseResult.sound;
+        stoneSoundRef.current = stoneResult.sound;
       } catch {
         // Ignore sound loading errors
       }
@@ -70,11 +77,15 @@ const Game: React.FC = () => {
           if (loseSoundRef.current) {
             await loseSoundRef.current.unloadAsync();
           }
+          if (stoneSoundRef.current) {
+            await stoneSoundRef.current.unloadAsync();
+          }
         } catch {
           // Ignore unload errors
         } finally {
           winSoundRef.current = null;
           loseSoundRef.current = null;
+          stoneSoundRef.current = null;
         }
       })();
     };
@@ -156,6 +167,17 @@ const Game: React.FC = () => {
     if (vsAI && currentPlayer !== HUMAN_PLAYER) {
       return;
     }
+
+    (async () => {
+      try {
+        if (currentPlayer === HUMAN_PLAYER && stoneSoundRef.current) {
+          await stoneSoundRef.current.setPositionAsync(0);
+          await stoneSoundRef.current.playAsync();
+        }
+      } catch {
+        // Ignore playback errors
+      }
+    })();
     
     // Make the human move
     const gameEnded = makeMove(row, col, currentPlayer, board);
