@@ -40,7 +40,7 @@ const Game: React.FC = () => {
     (async () => {
       try {
         const winResult = await Audio.Sound.createAsync(
-          require('../../assets/sounds/tada.mp3'),
+          require('../../assets/sounds/win.mp3'),
           { shouldPlay: false }
         );
         const loseResult = await Audio.Sound.createAsync(
