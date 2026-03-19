@@ -18,6 +18,7 @@ const Game: React.FC = () => {
   const [board, setBoard] = useState<number[][]>(initializeBoard());
   const [currentPlayer, setCurrentPlayer] = useState<number>(1); // 1 for black, 2 for white
   const [winner, setWinner] = useState<number | null>(null);
+  const [lastMove, setLastMove] = useState<{ row: number; col: number } | null>(null);
   const [vsAI, setVsAI] = useState<boolean>(true);
   const [aiThinking, setAiThinking] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(TIMER_DURATION);
@@ -29,6 +30,15 @@ const Game: React.FC = () => {
   const loseSoundRef = useRef<Audio.Sound | null>(null);
   const stoneSoundRef = useRef<Audio.Sound | null>(null);
   const lastPlayedWinnerRef = useRef<number | null>(null);
+  const soundsReadyRef = useRef<boolean>(false);
+  const soundsReadyPromiseRef = useRef<Promise<void> | null>(null);
+  const resolveSoundsReadyRef = useRef<(() => void) | null>(null);
+
+  if (!soundsReadyPromiseRef.current) {
+    soundsReadyPromiseRef.current = new Promise<void>((resolve) => {
+      resolveSoundsReadyRef.current = resolve;
+    });
+  }
   
   // AI is always player 2 (white)
   const AI_PLAYER = 2;
@@ -39,6 +49,8 @@ const Game: React.FC = () => {
 
     (async () => {
       try {
+        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+
         const winResult = await Audio.Sound.createAsync(
           require('../../assets/sounds/win.mp3'),
           { shouldPlay: false }
@@ -62,6 +74,20 @@ const Game: React.FC = () => {
         winSoundRef.current = winResult.sound;
         loseSoundRef.current = loseResult.sound;
         stoneSoundRef.current = stoneResult.sound;
+
+        soundsReadyRef.current = true;
+        resolveSoundsReadyRef.current?.();
+        resolveSoundsReadyRef.current = null;
+
+        try {
+          await stoneResult.sound.setVolumeAsync(0);
+          await stoneResult.sound.setPositionAsync(0);
+          await stoneResult.sound.playAsync();
+          await stoneResult.sound.stopAsync();
+          await stoneResult.sound.setVolumeAsync(1);
+        } catch {
+          // Ignore warm-up errors
+        }
       } catch {
         // Ignore sound loading errors
       }
@@ -86,10 +112,29 @@ const Game: React.FC = () => {
           winSoundRef.current = null;
           loseSoundRef.current = null;
           stoneSoundRef.current = null;
+          soundsReadyRef.current = false;
+          soundsReadyPromiseRef.current = null;
+          resolveSoundsReadyRef.current = null;
         }
       })();
     };
   }, []);
+
+  const playStoneSound = () => {
+    (async () => {
+      try {
+        if (!soundsReadyRef.current && soundsReadyPromiseRef.current) {
+          await soundsReadyPromiseRef.current;
+        }
+
+        if (!stoneSoundRef.current) return;
+
+        await stoneSoundRef.current.replayAsync();
+      } catch {
+        // Ignore playback errors
+      }
+    })();
+  };
 
   useEffect(() => {
     if (winner === null || winner === 0) {
@@ -123,6 +168,9 @@ const Game: React.FC = () => {
     // Create a new board with the move
     const newBoard = boardState.map(r => [...r]);
     newBoard[row][col] = player;
+
+    playStoneSound();
+    setLastMove({ row, col });
     
     // Check for win
     if (checkWin(newBoard, row, col, player)) {
@@ -167,17 +215,6 @@ const Game: React.FC = () => {
     if (vsAI && currentPlayer !== HUMAN_PLAYER) {
       return;
     }
-
-    (async () => {
-      try {
-        if (currentPlayer === HUMAN_PLAYER && stoneSoundRef.current) {
-          await stoneSoundRef.current.setPositionAsync(0);
-          await stoneSoundRef.current.playAsync();
-        }
-      } catch {
-        // Ignore playback errors
-      }
-    })();
     
     // Make the human move
     const gameEnded = makeMove(row, col, currentPlayer, board);
@@ -193,6 +230,7 @@ const Game: React.FC = () => {
     setBoard(newBoard);
     setCurrentPlayer(HUMAN_PLAYER); // Human always starts with black stones
     setWinner(null);
+    setLastMove(null);
     lastPlayedWinnerRef.current = null;
     
     // If playing against AI and AI goes first, make AI move
@@ -380,6 +418,7 @@ const Game: React.FC = () => {
       <Board 
         board={board} 
         onCellPress={handleCellPress} 
+        lastMove={lastMove}
       />
     </ScrollView>
   );
