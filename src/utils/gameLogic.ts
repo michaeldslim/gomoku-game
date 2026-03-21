@@ -1,5 +1,5 @@
 // Game board size
-export const BOARD_SIZE = 15;
+export const BOARD_SIZE = 16;
 
 // Initialize an empty board
 export const initializeBoard = (): number[][] => {
@@ -8,7 +8,13 @@ export const initializeBoard = (): number[][] => {
 
 // Check if the move is valid (cell is empty)
 export const isValidMove = (board: number[][], row: number, col: number): boolean => {
-  return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] === 0;
+  return (
+    row > 0 &&
+    row < BOARD_SIZE &&
+    col > 0 &&
+    col < BOARD_SIZE &&
+    board[row][col] === 0
+  );
 };
 
 // Check for a win (5 in a row)

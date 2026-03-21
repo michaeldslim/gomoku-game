@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import Stone from './Stone';
 
 interface BoardProps {
@@ -9,7 +9,7 @@ interface BoardProps {
 }
 
 const CELL_SIZE = 30;
-const BOARD_SIZE = 15;
+const BOARD_SIZE = 16;
 const BOARD_PADDING = 15;
 const STONE_SIZE = 24; // Match the stone size
 
@@ -17,13 +17,17 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove }) => {
   const webNoOutlineStyle = Platform.OS === 'web'
     ? ({ outlineStyle: 'none', outlineWidth: 0 } as any)
     : null;
+  const boardSize = board.length > 0 ? board.length : BOARD_SIZE;
+  const boardPixelSize = CELL_SIZE * (boardSize - 1) + BOARD_PADDING * 2;
+  const centerLineIndex = Math.floor(boardSize / 2);
+  const boardCenterOffset = centerLineIndex * CELL_SIZE;
 
   // Create grid lines
   const renderGridLines = () => {
     const lines = [];
     
     // Horizontal lines
-    for (let i = 0; i < BOARD_SIZE; i++) {
+    for (let i = 0; i < boardSize; i++) {
       lines.push(
         <View 
           key={`h-${i}`} 
@@ -33,7 +37,7 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove }) => {
     }
     
     // Vertical lines
-    for (let i = 0; i < BOARD_SIZE; i++) {
+    for (let i = 0; i < boardSize; i++) {
       lines.push(
         <View 
           key={`v-${i}`} 
@@ -49,9 +53,9 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove }) => {
   const renderIntersections = () => {
     const points = [];
     
-    for (let row = 0; row < BOARD_SIZE; row++) {
-      for (let col = 0; col < BOARD_SIZE; col++) {
-        const stoneValue = board[row][col];
+    for (let row = 0; row < boardSize; row++) {
+      for (let col = 0; col < boardSize; col++) {
+        const stoneValue = board[row]?.[col] ?? 0;
         const isHighlighted = !!lastMove && lastMove.row === row && lastMove.col === col;
         points.push(
           <TouchableOpacity
@@ -74,23 +78,49 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.board}>
-        {renderGridLines()}
-        {renderIntersections()}
-      </View>
+      <ScrollView
+        style={[styles.horizontalScroll, { maxHeight: boardPixelSize }]}
+        contentContainerStyle={styles.scrollContentCenter}
+        horizontal
+        showsHorizontalScrollIndicator
+      >
+        <ScrollView
+          style={[styles.verticalScroll, { maxHeight: boardPixelSize }]}
+          contentContainerStyle={styles.scrollContentCenter}
+          showsVerticalScrollIndicator
+          nestedScrollEnabled
+        >
+          <View style={[styles.board, { width: boardPixelSize, height: boardPixelSize }]}>
+            {renderGridLines()}
+            <View
+              pointerEvents="none"
+              style={[styles.centerDot, { left: boardCenterOffset, top: boardCenterOffset }]}
+            />
+            {renderIntersections()}
+          </View>
+        </ScrollView>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  horizontalScroll: {
+    width: '100%',
+  },
+  verticalScroll: {},
+  scrollContentCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   board: {
-    width: CELL_SIZE * (BOARD_SIZE - 1) + BOARD_PADDING * 2,
-    height: CELL_SIZE * (BOARD_SIZE - 1) + BOARD_PADDING * 2,
     backgroundColor: '#E8B96F', // Wooden board color
     borderRadius: 5,
     padding: BOARD_PADDING,
@@ -109,6 +139,16 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 1,
+  },
+  centerDot: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#D62828',
+    marginLeft: -4,
+    marginTop: -4,
+    zIndex: 4,
   },
   intersection: {
     position: 'absolute',

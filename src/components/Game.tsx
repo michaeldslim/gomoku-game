@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Switch, Text, Animated } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, Animated, TouchableOpacity } from 'react-native';
 import { Audio } from 'expo-av';
 import Board from './Board';
 import GameStatus from './GameStatus';
@@ -26,6 +26,7 @@ const Game: React.FC = () => {
   const [timerEnabled, setTimerEnabled] = useState<boolean>(false); // Timer disabled by default
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('intermediate');
   const timerAnimation = useRef(new Animated.Value(1)).current;
+  const controlsScrollRef = useRef<ScrollView | null>(null);
   const winSoundRef = useRef<Audio.Sound | null>(null);
   const loseSoundRef = useRef<Audio.Sound | null>(null);
   const stoneSoundRef = useRef<Audio.Sound | null>(null);
@@ -256,6 +257,14 @@ const Game: React.FC = () => {
     setTimeLeft(TIMER_DURATION);
     timerAnimation.setValue(1);
   };
+
+  const scrollControlsToStart = () => {
+    controlsScrollRef.current?.scrollTo({ x: 0, animated: true });
+  };
+
+  const scrollControlsToEnd = () => {
+    controlsScrollRef.current?.scrollToEnd({ animated: true });
+  };
   
   // Handle time up - player loses their turn or makes a random move
   const handleTimeUp = () => {
@@ -271,7 +280,7 @@ const Game: React.FC = () => {
     // Find all empty positions
     for (let row = 0; row < BOARD_SIZE; row++) {
       for (let col = 0; col < BOARD_SIZE; col++) {
-        if (board[row][col] === 0) {
+        if (isValidMove(board, row, col)) {
           emptyPositions.push({row, col});
         }
       }
@@ -383,38 +392,83 @@ const Game: React.FC = () => {
       )}
       
       <View style={styles.switchesContainer}>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchText}>플레이어 vs {vsAI ? 'AI' : '플레이어'}</Text>
-          <Switch
-            value={vsAI}
-            onValueChange={toggleAIMode}
-            trackColor={{ false: '#767577', true: '#81b0ff' }}
-            thumbColor={vsAI ? '#f5dd4b' : '#f4f3f4'}
-          />
-        </View>
-        {vsAI && (
-          <View style={styles.switchRow}>
-            <Text style={styles.switchText}>AI 난이도: {aiDifficulty === 'intermediate' ? '중급' : '고급'}</Text>
-            <Switch
-              value={aiDifficulty === 'expert'}
-              onValueChange={toggleAIDifficulty}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={aiDifficulty === 'expert' ? '#f5dd4b' : '#f4f3f4'}
-            />
-          </View>
-        )}
+        <View style={styles.controlsWrapper}>
+          <TouchableOpacity style={styles.arrowButton} onPress={scrollControlsToStart}>
+            <Text style={styles.arrowText}>‹</Text>
+          </TouchableOpacity>
 
-        <View style={styles.switchRow}>
-          <Text style={styles.switchText}>타이머 {timerEnabled ? '끄기' : '켜기'}</Text>
-          <Switch
-            value={timerEnabled}
-            onValueChange={toggleTimer}
-            trackColor={{ false: '#767577', true: '#81b0ff' }}
-            thumbColor={timerEnabled ? '#f5dd4b' : '#f4f3f4'}
-          />
+          <ScrollView
+            ref={controlsScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.controlBar}
+          >
+            <View style={styles.inlineGroup}>
+              <Text style={styles.controlLabel}>모드</Text>
+              <View style={styles.chipGroup}>
+                <TouchableOpacity
+                  style={[styles.chip, vsAI && styles.chipActive]}
+                  onPress={() => {
+                    if (!vsAI) toggleAIMode();
+                  }}
+                >
+                  <Text style={[styles.chipText, vsAI && styles.chipTextActive]}>AI</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.chip, !vsAI && styles.chipActive]}
+                  onPress={() => {
+                    if (vsAI) toggleAIMode();
+                  }}
+                >
+                  <Text style={[styles.chipText, !vsAI && styles.chipTextActive]}>2P</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {vsAI && (
+              <View style={styles.inlineGroup}>
+                <Text style={styles.controlLabel}>난이도</Text>
+                <View style={styles.chipGroup}>
+                  <TouchableOpacity
+                    style={[styles.chip, aiDifficulty === 'intermediate' && styles.chipActive]}
+                    onPress={() => {
+                      if (aiDifficulty !== 'intermediate') toggleAIDifficulty();
+                    }}
+                  >
+                    <Text style={[styles.chipText, aiDifficulty === 'intermediate' && styles.chipTextActive]}>중급</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.chip, aiDifficulty === 'expert' && styles.chipActive]}
+                    onPress={() => {
+                      if (aiDifficulty !== 'expert') toggleAIDifficulty();
+                    }}
+                  >
+                    <Text style={[styles.chipText, aiDifficulty === 'expert' && styles.chipTextActive]}>고급</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.inlineGroup}>
+              <Text style={styles.controlLabel}>타이머</Text>
+              <View style={styles.chipGroup}>
+                <TouchableOpacity
+                  style={[styles.chip, timerEnabled && styles.chipActive]}
+                  onPress={toggleTimer}
+                >
+                  <Text style={[styles.chipText, timerEnabled && styles.chipTextActive]}>
+                    {timerEnabled ? 'ON' : 'OFF'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+
+          <TouchableOpacity style={styles.arrowButton} onPress={scrollControlsToEnd}>
+            <Text style={styles.arrowText}>›</Text>
+          </TouchableOpacity>
         </View>
       </View>
-      {aiThinking && <Text style={styles.thinkingText}>AI가 생각 중...</Text>}
       <Board 
         board={board} 
         onCellPress={handleCellPress} 
@@ -429,10 +483,14 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingTop: 4,
+    paddingBottom: 20,
+    paddingHorizontal: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
   timerContainer: {
-    width: '100%',
+    alignSelf: 'stretch',
+    marginHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -464,27 +522,74 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   switchesContainer: {
-    width: '100%',
-    marginVertical: 10,
-    padding: 5,
+    alignSelf: 'stretch',
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 10,
   },
-  switchRow: {
+  controlsWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 5,
+    gap: 10,
   },
-  switchText: {
-    marginRight: 10,
+  controlBar: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  arrowButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrowText: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#334155',
+    lineHeight: 16,
   },
-  thinkingText: {
-    marginVertical: 5,
-    color: '#555',
-    fontStyle: 'italic',
+  inlineGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  controlLabel: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#374151',
+  },
+  chipGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    backgroundColor: '#f8fafc',
+    borderRadius: 999,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    minWidth: 44,
+    alignItems: 'center',
+  },
+  chipActive: {
+    borderColor: '#457B9D',
+    backgroundColor: '#457B9D',
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  chipTextActive: {
+    color: '#ffffff',
   },
 });
 

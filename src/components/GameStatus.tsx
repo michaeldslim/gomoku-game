@@ -28,7 +28,8 @@ const GameStatus: React.FC<GameStatusProps> = ({ currentPlayer, winner, onRestar
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 20,
+    marginTop: 8,
+    marginBottom: 8,
     alignItems: 'center',
   },
   status: {
