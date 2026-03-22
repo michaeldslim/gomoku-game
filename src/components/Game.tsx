@@ -76,19 +76,28 @@ const Game: React.FC = () => {
         loseSoundRef.current = loseResult.sound;
         stoneSoundRef.current = stoneResult.sound;
 
-        soundsReadyRef.current = true;
-        resolveSoundsReadyRef.current?.();
-        resolveSoundsReadyRef.current = null;
-
         try {
           await stoneResult.sound.setVolumeAsync(0);
           await stoneResult.sound.setPositionAsync(0);
           await stoneResult.sound.playAsync();
-          await stoneResult.sound.stopAsync();
-          await stoneResult.sound.setVolumeAsync(1);
+          // Give the audio session time to activate before pausing.
+          await new Promise(r => setTimeout(r, 300));
+          await stoneResult.sound.pauseAsync();
         } catch {
           // Ignore warm-up errors
+        } finally {
+          // Always restore volume and position regardless of warm-up success/failure
+          try {
+            await stoneResult.sound.setVolumeAsync(1);
+            await stoneResult.sound.setPositionAsync(0);
+          } catch {
+            // Ignore
+          }
         }
+
+        soundsReadyRef.current = true;
+        resolveSoundsReadyRef.current?.();
+        resolveSoundsReadyRef.current = null;
       } catch {
         // Ignore sound loading errors
       }
