@@ -23,7 +23,6 @@ const getOffensiveScore = (count: number, openEnds: number): number => {
 };
 
 const getDefensiveScore = (count: number, openEnds: number): number => {
-  if (count >= 5) return WIN_SCORE;
   if (count === 4 && openEnds >= 1) return 800000;
   if (count === 3 && openEnds === 2) return 50000;
   if (count === 3 && openEnds === 1) return 5000;
@@ -118,6 +117,20 @@ const getCandidateMoves = (board: number[][]): { row: number; col: number }[] =>
   return candidates;
 };
 
+// Count cells where a player can win in one move (used for fork detection)
+const countWinThreats = (board: number[][], player: number): number => {
+  let count = 0;
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      if (!isValidMove(board, r, c)) continue;
+      const test = board.map(row => [...row]);
+      test[r][c] = player;
+      if (checkWin(test, r, c, player)) count++;
+    }
+  }
+  return count;
+};
+
 // Evaluate a position for the AI
 const evaluatePosition = (board: number[][], row: number, col: number, aiPlayer: number): number => {
   if (!isValidMove(board, row, col)) return -1;
@@ -158,6 +171,53 @@ const evaluatePosition = (board: number[][], row: number, col: number, aiPlayer:
   return score;
 };
 
+// Expert-level move evaluator with priority tiers and fork detection
+const evaluateExpertMove = (
+  board: number[][],
+  row: number,
+  col: number,
+  aiPlayer: number,
+  humanPlayer: number,
+): number => {
+  if (!isValidMove(board, row, col)) return -1;
+
+  const aiBoard = board.map(r => [...r]);
+  aiBoard[row][col] = aiPlayer;
+
+  const humanBoard = board.map(r => [...r]);
+  humanBoard[row][col] = humanPlayer;
+
+  // Tier 1: Win immediately
+  if (checkWin(aiBoard, row, col, aiPlayer)) return WIN_SCORE;
+
+  // Tier 2: Block opponent's immediate win
+  if (checkWin(humanBoard, row, col, humanPlayer)) return BLOCK_WIN_SCORE;
+
+  // Tier 3: Create a fork — AI gains 2+ simultaneous winning threats (opponent can't block both)
+  const aiThreatsAfter = countWinThreats(aiBoard, aiPlayer);
+  if (aiThreatsAfter >= 2) return 50_000_000;
+
+  // Tier 4: Block opponent fork — if human places here they'd have 2+ winning threats
+  const humanThreatsHere = countWinThreats(humanBoard, humanPlayer);
+  if (humanThreatsHere >= 2) return 40_000_000;
+
+  // Tier 5+: Score by pattern strength (attack + defense)
+  let score = 0;
+  for (const [dx, dy] of directions) {
+    const { count: aiCount, openEnds: aiOpenEnds } = evaluateLine(aiBoard, row, col, aiPlayer, dx, dy);
+    score += getOffensiveScore(aiCount, aiOpenEnds);
+
+    const { count: humanCount, openEnds: humanOpenEnds } = evaluateLine(humanBoard, row, col, humanPlayer, dx, dy);
+    score += getDefensiveScore(humanCount, humanOpenEnds);
+  }
+
+  score += Math.floor(Math.random() * 3);
+  const centerDistance = Math.abs(row - BOARD_SIZE / 2) + Math.abs(col - BOARD_SIZE / 2);
+  score += (BOARD_SIZE - centerDistance) * 2;
+
+  return score;
+};
+
 export type AIDifficulty = 'intermediate' | 'expert';
 
 export const findBestMove = (
@@ -183,29 +243,14 @@ export const findBestMove = (
     return bestMove;
   }
 
+  // Expert mode: priority-tiered scoring with fork detection
+  let bestScore = -Infinity;
   let bestMove = candidates[0] ?? { row: 0, col: 0 };
-  let bestValue = -Infinity;
 
   for (const { row, col } of candidates) {
-    const aiScore = evaluatePosition(board, row, col, aiPlayer);
-
-    const boardAfterAIMove = board.map(r => [...r]);
-    boardAfterAIMove[row][col] = aiPlayer;
-
-    const replyCandidates = getCandidateMoves(boardAfterAIMove);
-    let worstForAI = -Infinity;
-
-    for (const reply of replyCandidates) {
-      const replyScore = evaluatePosition(boardAfterAIMove, reply.row, reply.col, humanPlayer);
-      if (replyScore > worstForAI) {
-        worstForAI = replyScore;
-      }
-    }
-
-    const value = aiScore - worstForAI;
-
-    if (value > bestValue) {
-      bestValue = value;
+    const score = evaluateExpertMove(board, row, col, aiPlayer, humanPlayer);
+    if (score > bestScore) {
+      bestScore = score;
       bestMove = { row, col };
     }
   }
