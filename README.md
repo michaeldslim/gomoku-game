@@ -30,7 +30,6 @@ Before running the project, make sure you have the following installed:
 1. Clone the repository:
    ```
    git clone <repository-url>
-   cd GomokuGame
    ```
 
 2. Install dependencies:
