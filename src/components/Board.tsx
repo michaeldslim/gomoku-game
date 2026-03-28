@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Platform, ScrollView, useWindowDimensions } from 'react-native';
 import Stone from './Stone';
 
 interface BoardProps {
@@ -14,6 +14,9 @@ const BOARD_PADDING = 15;
 const STONE_SIZE = 24; // Match the stone size
 
 const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove }) => {
+  const { height: screenHeight } = useWindowDimensions();
+  // Reserve space for UI above the board (status bar, controls, etc.)
+  const maxBoardVisibleHeight = screenHeight * 0.55;
   const webNoOutlineStyle = Platform.OS === 'web'
     ? ({ outlineStyle: 'none', outlineWidth: 0 } as any)
     : null;
@@ -79,13 +82,13 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove }) => {
   return (
     <View style={styles.container}>
       <ScrollView
-        style={[styles.horizontalScroll, { maxHeight: boardPixelSize }]}
+        style={[styles.horizontalScroll, { maxHeight: maxBoardVisibleHeight }]}
         contentContainerStyle={styles.scrollContentCenter}
         horizontal
         showsHorizontalScrollIndicator
       >
         <ScrollView
-          style={[styles.verticalScroll, { maxHeight: boardPixelSize }]}
+          style={{ maxHeight: maxBoardVisibleHeight }}
           contentContainerStyle={styles.scrollContentCenter}
           showsVerticalScrollIndicator
           nestedScrollEnabled

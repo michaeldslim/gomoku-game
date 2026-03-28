@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Text, Animated, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Text, Animated, TouchableOpacity, ScrollView } from 'react-native';
 import { Audio } from 'expo-av';
 import Board from './Board';
 import GameStatus from './GameStatus';
@@ -394,7 +394,7 @@ const Game: React.FC = () => {
   });
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.container}>
       <GameStatus 
         currentPlayer={currentPlayer} 
         winner={winner} 
@@ -507,13 +507,13 @@ const Game: React.FC = () => {
         onCellPress={handleCellPress} 
         lastMove={lastMove}
       />
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingTop: 4,
