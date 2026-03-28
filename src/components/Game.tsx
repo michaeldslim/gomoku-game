@@ -3,6 +3,7 @@ import { View, StyleSheet, Text, Animated, TouchableOpacity, ScrollView } from '
 import { Audio } from 'expo-av';
 import Board from './Board';
 import GameStatus from './GameStatus';
+import Fireworks from './Fireworks';
 import { 
   BOARD_SIZE, 
   initializeBoard, 
@@ -31,6 +32,10 @@ const Game: React.FC = () => {
     lastMove: { row: number; col: number } | null;
   }>>([]);
   const [undoCount, setUndoCount] = useState<number>(3);
+  const [totalScore, setTotalScore] = useState<number>(0);
+  const undosUsedThisGameRef = useRef<number>(0);
+  const prevTotalScoreRef = useRef<number>(0);
+  const [showFireworks, setShowFireworks] = useState<boolean>(false);
   const timerAnimation = useRef(new Animated.Value(1)).current;
   const controlsScrollRef = useRef<ScrollView | null>(null);
   const winSoundRef = useRef<Audio.Sound | null>(null);
@@ -192,6 +197,17 @@ const Game: React.FC = () => {
     if (checkWin(newBoard, row, col, player)) {
       setBoard(newBoard);
       setWinner(player);
+      // Award score only when human wins vs AI
+      if (vsAI && player === HUMAN_PLAYER) {
+        const gained = Math.max(0, 10 - undosUsedThisGameRef.current);
+        setTotalScore(prev => {
+          const next = prev + gained;
+          if (next >= 80) {
+            setAiDifficulty('expert');
+          }
+          return Math.min(next, 100); // cap at master threshold
+        });
+      }
       return true; // Game ended
     }
     
@@ -247,14 +263,17 @@ const Game: React.FC = () => {
   const handleRestart = () => {
     const newBoard = initializeBoard();
     setBoard(newBoard);
-    setCurrentPlayer(HUMAN_PLAYER); // Human always starts with black stones
+    setCurrentPlayer(HUMAN_PLAYER);
     setWinner(null);
     setLastMove(null);
     lastPlayedWinnerRef.current = null;
     setBoardHistory([]);
     setUndoCount(3);
-    
-    // If playing against AI and AI goes first, make AI move
+    undosUsedThisGameRef.current = 0;
+
+    // TEST ONLY: trigger fireworks on restart
+    setShowFireworks(true);
+    setTimeout(() => setShowFireworks(false), 4500);
     if (vsAI && currentPlayer === AI_PLAYER) {
       makeAIMove(newBoard);
     }
@@ -269,6 +288,7 @@ const Game: React.FC = () => {
     setLastMove(prev.lastMove);
     setWinner(null);
     setUndoCount(c => c - 1);
+    undosUsedThisGameRef.current += 1;
   };
   
   // Toggle between playing against human or AI
@@ -387,11 +407,28 @@ const Game: React.FC = () => {
     }
   }, [currentPlayer, winner, timerEnabled]);
 
+  // Trigger fireworks when score first reaches 100
+  useEffect(() => {
+    if (totalScore >= 100 && prevTotalScoreRef.current < 100) {
+      setShowFireworks(true);
+      setTimeout(() => setShowFireworks(false), 4500);
+    }
+    prevTotalScoreRef.current = totalScore;
+  }, [totalScore]);
+
   // Calculate timer color based on time left
   const timerColor = timerAnimation.interpolate({
     inputRange: [0, 0.5, 1],
     outputRange: ['#ff0000', '#ffff00', '#00ff00']
   });
+
+  const EXPERT_THRESHOLD = 80;
+  const MASTER_THRESHOLD = 100;
+  const isMaster = totalScore >= MASTER_THRESHOLD;
+  const isExpert = totalScore >= EXPERT_THRESHOLD;
+  // Segment widths: segment1 is 80% of bar, segment2 is 20%
+  const seg1Fill = Math.min(1, totalScore / EXPERT_THRESHOLD);
+  const seg2Fill = isExpert ? Math.min(1, (totalScore - EXPERT_THRESHOLD) / (MASTER_THRESHOLD - EXPERT_THRESHOLD)) : 0;
 
   return (
     <View style={styles.container}>
@@ -402,6 +439,54 @@ const Game: React.FC = () => {
         onUndo={handleUndo}
         undoCount={undoCount}
       />
+
+      {/* Score banner */}
+      <View style={styles.scoreBanner}>
+        {/* Header row: label + score + badges */}
+        <View style={styles.scoreRow}>
+          <Text style={styles.scoreLabel}>점수</Text>
+          <Text style={[styles.scoreValue, isMaster && { color: '#D97706' }, isExpert && !isMaster && { color: '#E63946' }]}>
+            {totalScore}
+          </Text>
+          <Text style={styles.scoreThreshold}> / {isMaster ? MASTER_THRESHOLD : EXPERT_THRESHOLD}</Text>
+          {isMaster ? (
+            <View style={[styles.expertBadge, { backgroundColor: '#D97706' }]}>
+              <Text style={styles.expertBadgeText}>🏆 마스터</Text>
+            </View>
+          ) : isExpert ? (
+            <View style={styles.expertBadge}>
+              <Text style={styles.expertBadgeText}>고급 자동 전환</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Two-segment bar */}
+        <View style={styles.scoreBarOuter}>
+          {/* Segment 1: 0 → 80 (80% width of total bar) */}
+          <View style={[styles.scoreBarSegment, { flex: 80 }]}>
+            <View style={styles.scoreBarTrack}>
+              <View style={[styles.scoreBarFill, { width: `${seg1Fill * 100}%`, backgroundColor: '#457B9D' }]} />
+            </View>
+          </View>
+
+          {/* Milestone divider at 80 */}
+          <View style={styles.scoreMilestoneDivider} />
+
+          {/* Segment 2: 80 → 100 (20% width of total bar) */}
+          <View style={[styles.scoreBarSegment, { flex: 20 }]}>
+            <View style={[styles.scoreBarTrack, { backgroundColor: isExpert ? '#FECACA' : '#E5E7EB' }]}>
+              <View style={[styles.scoreBarFill, { width: `${seg2Fill * 100}%`, backgroundColor: '#E63946' }]} />
+            </View>
+          </View>
+        </View>
+
+        {/* Milestone labels */}
+        <View style={styles.scoreLabelRow}>
+          <Text style={styles.scoreMilestoneLabel}>0</Text>
+          <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', left: '78%' }]}>80</Text>
+          <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', right: 0 }]}>100</Text>
+        </View>
+      </View>
       
       {/* Timer display */}
       {winner === null && timerEnabled && (
@@ -502,11 +587,14 @@ const Game: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
-      <Board 
-        board={board} 
-        onCellPress={handleCellPress} 
-        lastMove={lastMove}
-      />
+      <View style={styles.boardWrapper}>
+        <Board 
+          board={board} 
+          onCellPress={handleCellPress} 
+          lastMove={lastMove}
+        />
+        <Fireworks visible={showFireworks} />
+      </View>
     </View>
   );
 };
@@ -516,10 +604,91 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 4,
+    paddingTop: 0,
     paddingBottom: 20,
     paddingHorizontal: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
+  },
+  scoreBanner: {
+    alignSelf: 'stretch',
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 10,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  scoreLabel: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginRight: 6,
+  },
+  scoreValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1D4ED8',
+  },
+  scoreThreshold: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginRight: 8,
+  },
+  scoreBarOuter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  scoreBarSegment: {
+    height: 8,
+  },
+  scoreBarTrack: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  scoreBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  scoreMilestoneDivider: {
+    width: 2,
+    height: 14,
+    backgroundColor: '#9CA3AF',
+    marginHorizontal: 2,
+    borderRadius: 1,
+  },
+  scoreLabelRow: {
+    flexDirection: 'row',
+    marginTop: 2,
+    position: 'relative',
+  },
+  scoreMilestoneLabel: {
+    fontSize: 10,
+    color: '#9CA3AF',
+  },
+  expertBadge: {
+    backgroundColor: '#E63946',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  expertBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  boardWrapper: {
+    position: 'relative',
+    alignSelf: 'stretch',
   },
   timerContainer: {
     alignSelf: 'stretch',
