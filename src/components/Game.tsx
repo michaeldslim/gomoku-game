@@ -25,6 +25,12 @@ const Game: React.FC = () => {
   const [timerActive, setTimerActive] = useState<boolean>(true);
   const [timerEnabled, setTimerEnabled] = useState<boolean>(false); // Timer disabled by default
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('intermediate');
+  const [boardHistory, setBoardHistory] = useState<Array<{
+    board: number[][];
+    currentPlayer: number;
+    lastMove: { row: number; col: number } | null;
+  }>>([]);
+  const [undoCount, setUndoCount] = useState<number>(3);
   const timerAnimation = useRef(new Animated.Value(1)).current;
   const controlsScrollRef = useRef<ScrollView | null>(null);
   const winSoundRef = useRef<Audio.Sound | null>(null);
@@ -225,6 +231,9 @@ const Game: React.FC = () => {
     if (vsAI && currentPlayer !== HUMAN_PLAYER) {
       return;
     }
+
+    // Save snapshot for undo before making the move
+    setBoardHistory(prev => [...prev, { board: board.map(r => [...r]), currentPlayer, lastMove }]);
     
     // Make the human move
     const gameEnded = makeMove(row, col, currentPlayer, board);
@@ -242,11 +251,24 @@ const Game: React.FC = () => {
     setWinner(null);
     setLastMove(null);
     lastPlayedWinnerRef.current = null;
+    setBoardHistory([]);
+    setUndoCount(3);
     
     // If playing against AI and AI goes first, make AI move
     if (vsAI && currentPlayer === AI_PLAYER) {
       makeAIMove(newBoard);
     }
+  };
+
+  const handleUndo = () => {
+    if (undoCount <= 0 || boardHistory.length === 0 || aiThinking) return;
+    const prev = boardHistory[boardHistory.length - 1];
+    setBoardHistory(h => h.slice(0, -1));
+    setBoard(prev.board);
+    setCurrentPlayer(prev.currentPlayer);
+    setLastMove(prev.lastMove);
+    setWinner(null);
+    setUndoCount(c => c - 1);
   };
   
   // Toggle between playing against human or AI
@@ -376,7 +398,9 @@ const Game: React.FC = () => {
       <GameStatus 
         currentPlayer={currentPlayer} 
         winner={winner} 
-        onRestart={handleRestart} 
+        onRestart={handleRestart}
+        onUndo={handleUndo}
+        undoCount={undoCount}
       />
       
       {/* Timer display */}
