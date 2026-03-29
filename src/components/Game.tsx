@@ -271,9 +271,6 @@ const Game: React.FC = () => {
     setUndoCount(3);
     undosUsedThisGameRef.current = 0;
 
-    // TEST ONLY: trigger fireworks on restart
-    setShowFireworks(true);
-    setTimeout(() => setShowFireworks(false), 4500);
     if (vsAI && currentPlayer === AI_PLAYER) {
       makeAIMove(newBoard);
     }

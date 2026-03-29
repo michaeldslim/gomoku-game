@@ -43,14 +43,14 @@ const GameStatus: React.FC<GameStatusProps> = ({ currentPlayer, winner, onRestar
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 8,
+    marginTop: 20,
     marginBottom: 8,
     alignItems: 'center',
   },
   status: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 4,
   },
   winner: {
     fontSize: 24,
@@ -61,12 +61,12 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 10,
+    marginTop: 4,
   },
   button: {
     backgroundColor: '#457B9D',
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 6,
     borderRadius: 5,
   },
   undoButton: {
