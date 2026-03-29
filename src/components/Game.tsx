@@ -41,6 +41,7 @@ const Game: React.FC = () => {
   const winSoundRef = useRef<Audio.Sound | null>(null);
   const loseSoundRef = useRef<Audio.Sound | null>(null);
   const stoneSoundRef = useRef<Audio.Sound | null>(null);
+  const wowSoundRef = useRef<Audio.Sound | null>(null);
   const lastPlayedWinnerRef = useRef<number | null>(null);
   const soundsReadyRef = useRef<boolean>(false);
   const soundsReadyPromiseRef = useRef<Promise<void> | null>(null);
@@ -75,17 +76,23 @@ const Game: React.FC = () => {
           require('../../assets/sounds/stone.mp3'),
           { shouldPlay: false }
         );
+        const wowResult = await Audio.Sound.createAsync(
+          require('../../assets/sounds/wow.mp3'),
+          { shouldPlay: false }
+        );
 
         if (cancelled) {
           await winResult.sound.unloadAsync();
           await loseResult.sound.unloadAsync();
           await stoneResult.sound.unloadAsync();
+          await wowResult.sound.unloadAsync();
           return;
         }
 
         winSoundRef.current = winResult.sound;
         loseSoundRef.current = loseResult.sound;
         stoneSoundRef.current = stoneResult.sound;
+        wowSoundRef.current = wowResult.sound;
 
         try {
           await stoneResult.sound.setVolumeAsync(0);
@@ -127,12 +134,16 @@ const Game: React.FC = () => {
           if (stoneSoundRef.current) {
             await stoneSoundRef.current.unloadAsync();
           }
+          if (wowSoundRef.current) {
+            await wowSoundRef.current.unloadAsync();
+          }
         } catch {
           // Ignore unload errors
         } finally {
           winSoundRef.current = null;
           loseSoundRef.current = null;
           stoneSoundRef.current = null;
+          wowSoundRef.current = null;
           soundsReadyRef.current = false;
           soundsReadyPromiseRef.current = null;
           resolveSoundsReadyRef.current = null;
@@ -172,7 +183,11 @@ const Game: React.FC = () => {
     (async () => {
       try {
         const shouldPlayLose = vsAI && winner === AI_PLAYER;
-        const soundToPlay = shouldPlayLose ? loseSoundRef.current : winSoundRef.current;
+        const soundToPlay = shouldPlayLose
+          ? loseSoundRef.current
+          : totalScore >= 100
+          ? wowSoundRef.current
+          : winSoundRef.current;
 
         if (!soundToPlay) return;
 
@@ -233,7 +248,7 @@ const Game: React.FC = () => {
       const { row, col } = findBestMove(boardState, AI_PLAYER, aiDifficulty);
       makeMove(row, col, AI_PLAYER, boardState);
       setAiThinking(false);
-    }, 500);
+    }, 1000);
   };
   
   // Handle cell press by human player
@@ -409,6 +424,17 @@ const Game: React.FC = () => {
     if (totalScore >= 100 && prevTotalScoreRef.current < 100) {
       setShowFireworks(true);
       setTimeout(() => setShowFireworks(false), 4500);
+      // Play wow sound
+      (async () => {
+        try {
+          if (wowSoundRef.current) {
+            await wowSoundRef.current.setPositionAsync(0);
+            await wowSoundRef.current.playAsync();
+          }
+        } catch {
+          // Ignore playback errors
+        }
+      })();
     }
     prevTotalScoreRef.current = totalScore;
   }, [totalScore]);
