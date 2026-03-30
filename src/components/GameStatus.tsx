@@ -7,9 +7,10 @@ interface GameStatusProps {
   onRestart: () => void;
   onUndo: () => void;
   undoCount: number;
+  onLeaderboard?: () => void;
 }
 
-const GameStatus: React.FC<GameStatusProps> = ({ currentPlayer, winner, onRestart, onUndo, undoCount }) => {
+const GameStatus: React.FC<GameStatusProps> = ({ currentPlayer, winner, onRestart, onUndo, undoCount, onLeaderboard }) => {
   return (
     <View style={styles.container}>
       {winner === null ? (
@@ -34,6 +35,11 @@ const GameStatus: React.FC<GameStatusProps> = ({ currentPlayer, winner, onRestar
             <Text style={[styles.buttonText, undoCount === 0 && styles.buttonTextDisabled]}>
               무르기 ({undoCount})
             </Text>
+          </TouchableOpacity>
+        )}
+        {onLeaderboard && (
+          <TouchableOpacity style={[styles.button, styles.leaderboardButton]} onPress={onLeaderboard}>
+            <Text style={styles.buttonText}>리더보드</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -65,19 +71,22 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#457B9D',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 5,
   },
   undoButton: {
     backgroundColor: '#6B7280',
   },
+  leaderboardButton: {
+    backgroundColor: '#D4A853',
+  },
   buttonDisabled: {
     backgroundColor: '#D1D5DB',
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   buttonTextDisabled: {
