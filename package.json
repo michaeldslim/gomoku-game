@@ -14,9 +14,10 @@
     "expo": "~53.0.20",
     "expo-av": "~15.1.7",
     "expo-status-bar": "~2.2.3",
+    "expo-updates": "~0.28.18",
     "expo-web-browser": "~14.2.0",
     "react": "19.0.0",
-    "react-native": "0.79.5",
+    "react-native": "0.79.6",
     "react-native-safe-area-context": "5.4.0"
   },
   "devDependencies": {

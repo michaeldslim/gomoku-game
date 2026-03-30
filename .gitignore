@@ -2,6 +2,10 @@
 node_modules/
 jspm_packages/
 
+# Expo
+.expo/
+eas.json
+
 # Distribution directories
 dist/
 build/

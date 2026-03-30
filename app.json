@@ -29,6 +29,16 @@
     },
     "plugins": [
       "expo-web-browser"
-    ]
+    ],
+    "updates": {
+      "url": "https://u.expo.dev/174f040a-54d5-40cd-927a-c7a304b8d90a"
+    },
+    "runtimeVersion": "1.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "174f040a-54d5-40cd-927a-c7a304b8d90a"
+      }
+    },
+    "owner": "mike008"
   }
 }
