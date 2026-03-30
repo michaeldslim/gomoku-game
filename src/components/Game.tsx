@@ -537,12 +537,12 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, on
 
       {/* Login nudge after human win when not logged in */}
       {winner === HUMAN_PLAYER && !isLoggedIn && onLoginPress && (
-        <TouchableOpacity style={styles.loginNudge} onPress={onLoginPress}>
-          <Text style={styles.loginNudgeText}>
-            🏅 로그인하면 리더보드에 점수가 저장됩니다
-          </Text>
-          <Text style={styles.loginNudgeAction}>Google 로그인</Text>
-        </TouchableOpacity>
+        <View style={styles.loginNudge}>
+          <Text style={styles.loginNudgeText}>🏅 리더보드에 점수 저장: </Text>
+          <TouchableOpacity onPress={onLoginPress}>
+            <Text style={styles.loginNudgeAction}>Google 로그인</Text>
+          </TouchableOpacity>
+        </View>
       )}
       
       {/* Timer display */}
@@ -659,7 +659,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, on
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingTop: 0,
     paddingBottom: 20,
@@ -737,18 +737,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#1E293B',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    marginTop: 6,
-    gap: 8,
+    borderRadius: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    marginTop: 4,
   },
   loginNudgeText: {
-    fontSize: 13,
-    color: '#CBD5E1',
+    fontSize: 12,
+    color: '#94A3B8',
   },
   loginNudgeAction: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#4ADE80',
   },
