@@ -15,7 +15,14 @@ import { findBestMove, AIDifficulty } from '../utils/aiLogic';
 
 const TIMER_DURATION = 10; // 10 seconds per turn
 
-const Game: React.FC = () => {
+interface GameProps {
+  initialScore?: number;
+  onScoreUpdate?: (score: number) => void;
+  onExit?: () => void;
+  onLeaderboard?: () => void;
+}
+
+const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, onLeaderboard }) => {
   const [board, setBoard] = useState<number[][]>(initializeBoard());
   const [currentPlayer, setCurrentPlayer] = useState<number>(1); // 1 for black, 2 for white
   const [winner, setWinner] = useState<number | null>(null);
@@ -32,9 +39,10 @@ const Game: React.FC = () => {
     lastMove: { row: number; col: number } | null;
   }>>([]);
   const [undoCount, setUndoCount] = useState<number>(3);
-  const [totalScore, setTotalScore] = useState<number>(0);
+  const [totalScore, setTotalScore] = useState<number>(initialScore);
   const undosUsedThisGameRef = useRef<number>(0);
-  const prevTotalScoreRef = useRef<number>(0);
+  const prevTotalScoreRef = useRef<number>(initialScore);
+  const hasMountedScoreEffectRef = useRef<boolean>(false);
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
   const timerAnimation = useRef(new Animated.Value(1)).current;
   const controlsScrollRef = useRef<ScrollView | null>(null);
@@ -419,8 +427,12 @@ const Game: React.FC = () => {
     }
   }, [currentPlayer, winner, timerEnabled]);
 
-  // Trigger fireworks when score first reaches 100
+  // Trigger fireworks when score first reaches 100; sync score to DB
   useEffect(() => {
+    if (!hasMountedScoreEffectRef.current) {
+      hasMountedScoreEffectRef.current = true;
+      return;
+    }
     if (totalScore >= 100 && prevTotalScoreRef.current < 100) {
       setShowFireworks(true);
       setTimeout(() => setShowFireworks(false), 4500);
@@ -435,6 +447,10 @@ const Game: React.FC = () => {
           // Ignore playback errors
         }
       })();
+    }
+    // Sync new best score to DB if it increased
+    if (totalScore > prevTotalScoreRef.current && onScoreUpdate) {
+      onScoreUpdate(totalScore);
     }
     prevTotalScoreRef.current = totalScore;
   }, [totalScore]);
@@ -461,6 +477,7 @@ const Game: React.FC = () => {
         onRestart={handleRestart}
         onUndo={handleUndo}
         undoCount={undoCount}
+        onLeaderboard={onLeaderboard}
       />
 
       {/* Score banner */}
@@ -481,6 +498,11 @@ const Game: React.FC = () => {
               <Text style={styles.expertBadgeText}>고급 자동 전환</Text>
             </View>
           ) : null}
+          {onExit && (
+            <TouchableOpacity onPress={onExit} style={styles.exitButton}>
+              <Text style={styles.exitButtonText}>홈</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Two-segment bar */}
@@ -708,6 +730,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  exitButton: {
+    marginLeft: 'auto',
+    backgroundColor: '#6C757D',
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
+  exitButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   boardWrapper: {
     position: 'relative',
