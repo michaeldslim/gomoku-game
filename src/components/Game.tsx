@@ -20,9 +20,11 @@ interface GameProps {
   onScoreUpdate?: (score: number) => void;
   onExit?: () => void;
   onLeaderboard?: () => void;
+  isLoggedIn?: boolean;
+  onLoginPress?: () => void;
 }
 
-const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, onLeaderboard }) => {
+const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, onLeaderboard, isLoggedIn, onLoginPress }) => {
   const [board, setBoard] = useState<number[][]>(initializeBoard());
   const [currentPlayer, setCurrentPlayer] = useState<number>(1); // 1 for black, 2 for white
   const [winner, setWinner] = useState<number | null>(null);
@@ -532,6 +534,16 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, on
           <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', right: 0 }]}>100</Text>
         </View>
       </View>
+
+      {/* Login nudge after human win when not logged in */}
+      {winner === HUMAN_PLAYER && !isLoggedIn && onLoginPress && (
+        <TouchableOpacity style={styles.loginNudge} onPress={onLoginPress}>
+          <Text style={styles.loginNudgeText}>
+            🏅 로그인하면 리더보드에 점수가 저장됩니다
+          </Text>
+          <Text style={styles.loginNudgeAction}>Google 로그인</Text>
+        </TouchableOpacity>
+      )}
       
       {/* Timer display */}
       {winner === null && timerEnabled && (
@@ -719,6 +731,26 @@ const styles = StyleSheet.create({
   scoreMilestoneLabel: {
     fontSize: 10,
     color: '#9CA3AF',
+  },
+  loginNudge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginTop: 6,
+    gap: 8,
+  },
+  loginNudgeText: {
+    fontSize: 13,
+    color: '#CBD5E1',
+  },
+  loginNudgeAction: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#4ADE80',
   },
   expertBadge: {
     backgroundColor: '#E63946',

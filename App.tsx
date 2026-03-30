@@ -65,6 +65,8 @@ function AppContent() {
           onScoreUpdate={handleScoreUpdate}
           onExit={() => setScreen('home')}
           onLeaderboard={user ? () => goToLeaderboard('game') : undefined}
+          isLoggedIn={!!user}
+          onLoginPress={!user ? signInWithGoogle : undefined}
         />
         {screen === 'leaderboard' && (
           <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
@@ -218,6 +220,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   googleButtonText: {
     color: '#fff',
