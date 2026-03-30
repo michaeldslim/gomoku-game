@@ -110,3 +110,89 @@ GomokuGame/
 ## License
 
 [MIT License](LICENSE)
+
+## EAS OTA Workflow (Expo Updates)
+
+This project is configured to use EAS Update (OTA) for delivering JS/TS changes to installed apps. The steps below cover common scenarios and exact commands.
+
+1) Check Expo login
+```bash
+eas whoami
+```
+If not logged in:
+```bash
+eas logout
+eas login
+```
+
+2) One-time project linking (if needed)
+```bash
+cd /path/to/gomoku-game
+eas init
+```
+
+3) app.json (one-time)
+- Ensure `updates.url` is set to `https://u.expo.dev/YOUR_PROJECT_ID` and `runtimeVersion` is present. Example:
+```json
+"updates": { "url": "https://u.expo.dev/YOUR_PROJECT_ID" },
+"runtimeVersion": "1.0.0"
+```
+
+4) Install & configure `expo-updates` (one-time)
+```bash
+npx expo install expo-updates
+```
+
+5) Build-time env vars (do not commit secrets)
+- Add build-time env to `eas.json` production profile under `env` for keys like `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+- If `eas.json` contains secrets, add it to `.gitignore`:
+```bash
+echo "eas.json" >> .gitignore
+```
+
+6) Initial native build / rebuild after native changes
+```bash
+eas build --platform android --profile production
+```
+
+7) Install APK on devices
+Option A (automatic, connected devices):
+```bash
+eas build:run --platform android
+```
+Run it once per device (select device each time).
+
+Option B (manual sideload):
+```bash
+# download the APK from EAS build link
+adb install -r path/to/app.apk
+```
+
+8) Push JS-only OTA update (no reinstall needed)
+```bash
+eas update --branch production --message "describe change"
+```
+
+9) Native change workflow (when adding native package or changing native config)
+- Bump runtime version in both files before building:
+   - `app.json`: `"runtimeVersion": "1.1.0"`
+   - `android/app/src/main/res/values/strings.xml`: `<string name="expo_runtime_version">1.1.0</string>`
+- Then rebuild and reinstall:
+```bash
+eas build --platform android --profile production
+eas build:run --platform android
+```
+
+10) Reinstall a previous build (no rebuild)
+```bash
+eas build:run --platform android
+# choose a previous build from the list
+```
+
+11) Housekeeping notes
+- Use one package manager (yarn or npm). Remove other lockfiles: `rm package-lock.json` if using yarn.
+- Add `.expo/` to `.gitignore`.
+- After changing Expo password: `eas logout && eas login`.
+- If builds queue: check https://expo.dev/accounts/<your-account>/builds and cancel old builds or wait.
+
+If you want, I can add a small helper script to automatically bump `strings.xml` when `runtimeVersion` in `app.json` changes, or add an `npm` script to run `eas update` with a prompt for a message.
