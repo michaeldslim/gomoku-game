@@ -196,3 +196,16 @@ eas build:run --platform android
 - If builds queue: check https://expo.dev/accounts/<your-account>/builds and cancel old builds or wait.
 
 If you want, I can add a small helper script to automatically bump `strings.xml` when `runtimeVersion` in `app.json` changes, or add an `npm` script to run `eas update` with a prompt for a message.
+
+## Helper scripts added
+
+Added `bump-runtime.js` — Node script that:
+- Accepts a version arg (`node scripts/bump-runtime.js 1.1.0`)
+- If no arg provided, reads `expo.runtimeVersion` from `app.json` and updates `strings.xml`
+- Writes back `app.json` with updated `runtimeVersion` and updates/inserts `<string name="expo_runtime_version">` in `strings.xml`
+
+Added npm scripts in `package.json`:
+- `npm run bump:runtime -- 1.2.0` — set both files to `1.2.0`
+- `npm run bump:runtime:from-appjson` — read `app.json` and sync `strings.xml`
+
+Use these before a native rebuild to keep runtime versions in sync.
