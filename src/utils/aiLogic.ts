@@ -9,6 +9,7 @@ const directions = [
 
 const WIN_SCORE = 100000000;
 const BLOCK_WIN_SCORE = 90000000;
+const INTERMEDIATE_TOP_POOL_SIZE = 3; // keeping it in 2-4 range for balance
 
 const getOffensiveScore = (count: number, openEnds: number): number => {
   if (count >= 5) return WIN_SCORE;
@@ -229,18 +230,17 @@ export const findBestMove = (
   const humanPlayer = aiPlayer === 1 ? 2 : 1;
 
   if (difficulty === 'intermediate') {
-    let bestScore = -1;
-    let bestMove = candidates[0] ?? { row: 0, col: 0 };
+    const scoredMoves = candidates
+      .map(({ row, col }) => ({ row, col, score: evaluatePosition(board, row, col, aiPlayer) }))
+      .sort((a, b) => b.score - a.score);
 
-    for (const { row, col } of candidates) {
-      const score = evaluatePosition(board, row, col, aiPlayer);
-      if (score > bestScore) {
-        bestScore = score;
-        bestMove = { row, col };
-      }
+    if (scoredMoves[0] && scoredMoves[0].score >= BLOCK_WIN_SCORE) {
+      return { row: scoredMoves[0].row, col: scoredMoves[0].col };
     }
 
-    return bestMove;
+    const topPool = scoredMoves.slice(0, Math.min(INTERMEDIATE_TOP_POOL_SIZE, scoredMoves.length));
+    const pick = topPool[Math.floor(Math.random() * topPool.length)] ?? { row: 0, col: 0 };
+    return { row: pick.row, col: pick.col };
   }
 
   // Expert mode: priority-tiered scoring with fork detection
