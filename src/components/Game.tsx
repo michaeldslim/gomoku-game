@@ -437,7 +437,11 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, on
     }
     if (totalScore >= 100 && prevTotalScoreRef.current < 100) {
       setShowFireworks(true);
-      setTimeout(() => setShowFireworks(false), 4500);
+      setTimeout(() => {
+        setShowFireworks(false);
+        setTotalScore(0);
+        setAiDifficulty('intermediate');
+      }, 4500);
       // Play wow sound
       (async () => {
         try {
