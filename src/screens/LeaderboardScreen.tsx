@@ -37,20 +37,31 @@ export default function LeaderboardScreen({ onBack }: Props) {
     load();
   }, [load]);
 
+  const getScoreBadge = (score: number): string => {
+    if (score >= 100) return '🏆';
+    if (score >= 90) return '😎';
+    if (score >= 80) return '😄';
+    if (score >= 70) return '🙂';
+    if (score >= 60) return '😊';
+    if (score >= 50) return '😌';
+    if (score >= 40) return '😐';
+    if (score >= 30) return '😕';
+    if (score >= 20) return '😣';
+    if (score >= 10) return '😅';
+    return '😶';
+  };
+
   const renderItem = ({ item }: { item: LeaderboardEntry }) => {
     const rankEmoji = item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : item.rank === 3 ? '🥉' : `${item.rank}.`;
     return (
       <View style={styles.row}>
         <Text style={styles.rank}>{rankEmoji}</Text>
         <Text style={styles.scoreCol} numberOfLines={1}>
-          Score: {item.score}
-        </Text>
-        <Text style={styles.dateCol} numberOfLines={1}>
-          Date: {item.date}
+          Score: {item.score} ({item.date})
         </Text>
         <View style={[styles.scorePill, item.score >= 100 && styles.masterPill]}>
           <Text style={[styles.scoreText, item.score >= 100 && styles.masterScoreText]}>
-            {item.score >= 100 ? '🏆' : '-'}
+            {getScoreBadge(item.score)}
           </Text>
         </View>
       </View>
@@ -190,15 +201,10 @@ const styles = StyleSheet.create({
     color: '#6C757D',
   },
   scoreCol: {
-    flex: 1.1,
+    flex: 1,
     fontSize: 15,
     color: '#212529',
     marginRight: 10,
-  },
-  dateCol: {
-    flex: 1,
-    fontSize: 13,
-    color: '#495057',
   },
   scorePill: {
     backgroundColor: '#E9ECEF',
