@@ -56,9 +56,10 @@ export default function LeaderboardScreen({ onBack }: Props) {
     return (
       <View style={styles.row}>
         <Text style={styles.rank}>{rankEmoji}</Text>
-        <Text style={styles.scoreCol} numberOfLines={1}>
-          Score: {item.score} ({item.date})
-        </Text>
+        <View style={styles.infoCol}>
+          <Text style={styles.scoreLine}>Score: {item.score}</Text>
+          <Text style={styles.dateLine}>Date: {item.date}</Text>
+        </View>
         <View style={[styles.scorePill, item.score >= 100 && styles.masterPill]}>
           <Text style={[styles.scoreText, item.score >= 100 && styles.masterScoreText]}>
             {getScoreBadge(item.score)}
@@ -200,17 +201,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#6C757D',
   },
-  scoreCol: {
+  infoCol: {
     flex: 1,
+    marginRight: 10,
+  },
+  scoreLine: {
     fontSize: 15,
     color: '#212529',
-    marginRight: 10,
+    fontWeight: '600',
+  },
+  dateLine: {
+    marginTop: 2,
+    fontSize: 13,
+    color: '#6C757D',
   },
   scorePill: {
     backgroundColor: '#E9ECEF',
     borderRadius: 12,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 6,
+    minWidth: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   masterPill: {
     backgroundColor: '#FEF3C7',
