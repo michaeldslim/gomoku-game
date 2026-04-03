@@ -14,6 +14,7 @@ import {
 import { findBestMove, AIDifficulty } from '../utils/aiLogic';
 
 const TIMER_DURATION = 10; // 10 seconds per turn
+const EXPERT_THRESHOLD = 80;
 
 interface GameProps {
   initialScore?: number;
@@ -34,7 +35,9 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, on
   const [timeLeft, setTimeLeft] = useState<number>(TIMER_DURATION);
   const [timerActive, setTimerActive] = useState<boolean>(true);
   const [timerEnabled, setTimerEnabled] = useState<boolean>(false); // Timer disabled by default
-  const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('intermediate');
+  const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>(
+    initialScore >= EXPERT_THRESHOLD ? 'expert' : 'intermediate'
+  );
   const [boardHistory, setBoardHistory] = useState<Array<{
     board: number[][];
     currentPlayer: number;
@@ -161,6 +164,12 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, on
       })();
     };
   }, []);
+
+  useEffect(() => {
+    if (initialScore >= EXPERT_THRESHOLD) {
+      setAiDifficulty('expert');
+    }
+  }, [initialScore]);
 
   const playStoneSound = () => {
     (async () => {
@@ -467,7 +476,6 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, on
     outputRange: ['#ff0000', '#ffff00', '#00ff00']
   });
 
-  const EXPERT_THRESHOLD = 80;
   const MASTER_THRESHOLD = 100;
   const isMaster = totalScore >= MASTER_THRESHOLD;
   const isExpert = totalScore >= EXPERT_THRESHOLD;

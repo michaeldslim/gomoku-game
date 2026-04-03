@@ -9,7 +9,9 @@ const directions = [
 
 const WIN_SCORE = 100000000;
 const BLOCK_WIN_SCORE = 90000000;
-const INTERMEDIATE_TOP_POOL_SIZE = 3; // keeping it in 2-4 range for balance
+
+// keeping it in 1 (hardest) - 5 (easier) range for balance
+const INTERMEDIATE_TOP_POOL_SIZE = 3;
 
 const getOffensiveScore = (count: number, openEnds: number): number => {
   if (count >= 5) return WIN_SCORE;
