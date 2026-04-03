@@ -11,14 +11,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchLeaderboard, LeaderboardEntry } from '../services/leaderboard';
 
 interface Props {
-  currentUserId?: string;
   onBack: () => void;
 }
 
-export default function LeaderboardScreen({ currentUserId, onBack }: Props) {
+export default function LeaderboardScreen({ onBack }: Props) {
   const insets = useSafeAreaInsets();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const topEntries = entries.filter((item) => item.score >= 100);
+  const bottomEntries = entries.filter((item) => {
+    if (item.score >= 100) return false;
+    const ts = new Date(item.createdAt).getTime();
+    return Number.isFinite(ts) && ts >= oneWeekAgo;
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -32,23 +38,39 @@ export default function LeaderboardScreen({ currentUserId, onBack }: Props) {
   }, [load]);
 
   const renderItem = ({ item }: { item: LeaderboardEntry }) => {
-    const isMe = item.user_id === currentUserId;
     const rankEmoji = item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : item.rank === 3 ? '🥉' : `${item.rank}.`;
     return (
-      <View style={[styles.row, isMe && styles.myRow]}>
-        <Text style={[styles.rank, isMe && styles.myText]}>{rankEmoji}</Text>
-        <Text style={[styles.name, isMe && styles.myText]} numberOfLines={1}>
-          {item.display_name}
-          {isMe ? ' (나)' : ''}
+      <View style={styles.row}>
+        <Text style={styles.rank}>{rankEmoji}</Text>
+        <Text style={styles.scoreCol} numberOfLines={1}>
+          Score: {item.score}
+        </Text>
+        <Text style={styles.dateCol} numberOfLines={1}>
+          Date: {item.date}
         </Text>
         <View style={[styles.scorePill, item.score >= 100 && styles.masterPill]}>
           <Text style={[styles.scoreText, item.score >= 100 && styles.masterScoreText]}>
-            {item.score >= 100 ? '🏆 ' : ''}{item.score}
+            {item.score >= 100 ? '🏆' : '-'}
           </Text>
         </View>
       </View>
     );
   };
+
+  const renderSection = (title: string, data: LeaderboardEntry[]) => (
+    <View style={styles.sectionCard}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {data.length === 0 ? (
+        <Text style={styles.sectionEmpty}>기록 없음</Text>
+      ) : (
+        data.map((item) => (
+          <View key={item.id} style={styles.sectionRowWrapper}>
+            {renderItem({ item })}
+          </View>
+        ))
+      )}
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -71,10 +93,14 @@ export default function LeaderboardScreen({ currentUserId, onBack }: Props) {
         </View>
       ) : (
         <FlatList
-          data={entries}
-          keyExtractor={(item) => item.user_id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.list}
+          data={[{ key: 'sections' }]}
+          keyExtractor={(item) => item.key}
+          renderItem={() => (
+            <View style={styles.list}>
+              {renderSection('🏆 TOP (100+)', topEntries)}
+              {renderSection('🎯 BOTTOM (<100)', bottomEntries)}
+            </View>
+          )}
         />
       )}
     </View>
@@ -121,7 +147,28 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
-    gap: 8,
+    gap: 12,
+  },
+  sectionCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 8,
+  },
+  sectionEmpty: {
+    fontSize: 13,
+    color: '#6C757D',
+    paddingVertical: 6,
+  },
+  sectionRowWrapper: {
+    marginBottom: 8,
   },
   row: {
     flexDirection: 'row',
@@ -136,26 +183,22 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  myRow: {
-    backgroundColor: '#EBF4FA',
-    borderWidth: 1.5,
-    borderColor: '#457B9D',
-  },
   rank: {
     width: 36,
     fontSize: 16,
     fontWeight: 'bold',
     color: '#6C757D',
   },
-  name: {
-    flex: 1,
+  scoreCol: {
+    flex: 1.1,
     fontSize: 15,
     color: '#212529',
-    marginRight: 8,
+    marginRight: 10,
   },
-  myText: {
-    color: '#1D3557',
-    fontWeight: '700',
+  dateCol: {
+    flex: 1,
+    fontSize: 13,
+    color: '#495057',
   },
   scorePill: {
     backgroundColor: '#E9ECEF',
