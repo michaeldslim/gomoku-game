@@ -62,6 +62,20 @@ export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
   }));
 }
 
+export async function fetchStartupScore(): Promise<number> {
+  const records = await readRecords();
+  const latest = records[0];
+
+  if (!latest) return 0;
+  if (latest.score >= 100) return 0;
+
+  return Math.max(0, Math.floor(latest.score));
+}
+
+export async function clearLeaderboard(): Promise<void> {
+  await AsyncStorage.removeItem(LEADERBOARD_STORAGE_KEY);
+}
+
 export async function addLeaderboardEntry(score: number): Promise<void> {
   if (score <= 0) return;
 

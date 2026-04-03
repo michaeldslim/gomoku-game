@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   StyleSheet,
   Text,
@@ -8,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchLeaderboard, LeaderboardEntry } from '../services/leaderboard';
+import { clearLeaderboard, fetchLeaderboard, LeaderboardEntry } from '../services/leaderboard';
 
 interface Props {
   onBack: () => void;
@@ -35,6 +36,29 @@ export default function LeaderboardScreen({ onBack }: Props) {
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  const handleResetLeaderboard = useCallback(() => {
+    Alert.alert('Reset Leaderboard', 'Delete all saved local leaderboard scores?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Reset',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            try {
+              setLoading(true);
+              await clearLeaderboard();
+              await load();
+              Alert.alert('Cleared', 'Leaderboard data has been removed.');
+            } catch {
+              setLoading(false);
+              Alert.alert('Error', 'Failed to clear leaderboard. Please try again.');
+            }
+          })();
+        },
+      },
+    ]);
   }, [load]);
 
   const getScoreBadge = (score: number): string => {
@@ -86,14 +110,19 @@ export default function LeaderboardScreen({ onBack }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 14 }]}> 
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backText}>뒤로</Text>
         </TouchableOpacity>
         <Text style={styles.title}>🏅 리더보드</Text>
-        <TouchableOpacity onPress={load} style={styles.refreshButton}>
-          <Text style={styles.refreshText}>↻</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={load} style={styles.refreshButton}>
+            <Text style={styles.refreshText}>Refresh</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleResetLeaderboard} style={styles.resetButton}>
+            <Text style={styles.resetText}>Clear</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -148,10 +177,30 @@ const styles = StyleSheet.create({
     color: '#212529',
   },
   refreshButton: {
-    padding: 4,
+    height: 24,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  resetButton: {
+    height: 24,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  resetText: {
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '700',
+    color: '#C2410C',
   },
   refreshText: {
-    fontSize: 20,
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '700',
     color: '#457B9D',
   },
   loader: {

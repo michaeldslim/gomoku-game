@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,12 +11,14 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Game from './src/components/Game';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
-import { addLeaderboardEntry } from './src/services/leaderboard';
+import { addLeaderboardEntry, fetchStartupScore } from './src/services/leaderboard';
 
 type Screen = 'home' | 'game' | 'leaderboard';
 
 function AppContent() {
   const [screen, setScreen] = useState<Screen>('home');
+  const [startupScore, setStartupScore] = useState(0);
+  const [isStartingGame, setIsStartingGame] = useState(false);
   const prevScreenRef = useRef<Screen>('home');
 
   const goToLeaderboard = useCallback((from: Screen) => {
@@ -30,11 +33,19 @@ function AppContent() {
     []
   );
 
+  const handleStartGame = useCallback(async () => {
+    setIsStartingGame(true);
+    const initial = await fetchStartupScore();
+    setStartupScore(initial);
+    setScreen('game');
+    setIsStartingGame(false);
+  }, []);
+
   if (screen === 'game' || (screen === 'leaderboard' && prevScreenRef.current === 'game')) {
     return (
       <SafeAreaView style={styles.container}>
         <Game
-          initialScore={0}
+          initialScore={startupScore}
           onScoreUpdate={handleScoreUpdate}
           onExit={() => setScreen('home')}
           onLeaderboard={() => goToLeaderboard('game')}
@@ -92,8 +103,16 @@ function AppContent() {
           5. The play board can be scrolled horizontally and vertically.
         </Text>
 
-        <TouchableOpacity style={styles.startButton} onPress={() => setScreen('game')}>
-          <Text style={styles.startButtonText}>Start Game</Text>
+        <TouchableOpacity
+          style={styles.startButton}
+          onPress={handleStartGame}
+          disabled={isStartingGame}
+        >
+          {isStartingGame ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.startButtonText}>Start Game</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.leaderboardButton} onPress={() => goToLeaderboard('home')}>
