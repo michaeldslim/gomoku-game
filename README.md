@@ -144,7 +144,7 @@ npx expo install expo-updates
 ```
 
 5) Build-time env vars (do not commit secrets)
-- Add build-time env to `eas.json` production profile under `env` for keys like `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+- Add only the environment variables your app currently uses to `eas.json` production profile under `env`.
 - If `eas.json` contains secrets, add it to `.gitignore`:
 ```bash
 echo "eas.json" >> .gitignore
