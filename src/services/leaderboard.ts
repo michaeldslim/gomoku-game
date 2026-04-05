@@ -33,6 +33,10 @@ const formatDate = (isoDate: string): string => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
+const isSameStartedAndPlayedDay = (record: LocalLeaderboardRecord): boolean => {
+  return formatDate(record.createdAt) === formatDate(record.updatedAt);
+};
+
 const readRecords = async (): Promise<LocalLeaderboardRecord[]> => {
   const raw = await AsyncStorage.getItem(LEADERBOARD_STORAGE_KEY);
   if (!raw) return [];
@@ -111,11 +115,11 @@ export async function addLeaderboardEntry(score: number): Promise<void> {
 
   let next: LocalLeaderboardRecord[];
 
-  // Same run: score is increasing, so update latest score and latest played time.
-  if (latest && score > latest.score) {
+  // Overwrite latest whenever started date and last played date are the same.
+  if (latest && isSameStartedAndPlayedDay(latest)) {
     next = [{ ...latest, score, updatedAt: now }, ...records.slice(1)];
   } else {
-    // New run (e.g. after fireworks reset to 0, next win starts from a lower score).
+    // Otherwise, create a new run entry for the new score.
     const id = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
     next = [{ id, score, createdAt: now, updatedAt: now }, ...records];
   }
@@ -123,4 +127,38 @@ export async function addLeaderboardEntry(score: number): Promise<void> {
   next = next.slice(0, LEADERBOARD_MAX_ENTRIES);
 
   await writeRecords(next);
+}
+
+export async function startFreshRun(currentScore: number): Promise<void> {
+  const records = await readRecords();
+  const latest = records[0];
+  const now = new Date().toISOString();
+  const normalizedScore = Math.max(0, Math.floor(currentScore));
+
+  if (!latest) {
+    return;
+  }
+
+  const newRun: LocalLeaderboardRecord = {
+    id: `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`,
+    score: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  let next: LocalLeaderboardRecord[];
+
+  const finalizedLatest: LocalLeaderboardRecord = {
+    ...latest,
+    score: normalizedScore,
+    updatedAt: now,
+  };
+
+  if (isSameStartedAndPlayedDay(latest)) {
+    next = [finalizedLatest, ...records.slice(1)];
+  } else {
+    next = [newRun, finalizedLatest, ...records.slice(1)];
+  }
+
+  await writeRecords(next.slice(0, LEADERBOARD_MAX_ENTRIES));
 }

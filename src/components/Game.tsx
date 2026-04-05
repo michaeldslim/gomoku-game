@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, Animated, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, Text, Animated, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Audio } from 'expo-av';
 import Board from './Board';
 import GameStatus from './GameStatus';
@@ -19,11 +19,11 @@ const EXPERT_THRESHOLD = 80;
 interface GameProps {
   initialScore?: number;
   onScoreUpdate?: (score: number) => void;
-  onExit?: () => void;
+  onStartFreshRun?: (currentScore: number) => Promise<void> | void;
   onLeaderboard?: () => void;
 }
 
-const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, onLeaderboard }) => {
+const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFreshRun, onLeaderboard }) => {
   const [board, setBoard] = useState<number[][]>(initializeBoard());
   const [currentPlayer, setCurrentPlayer] = useState<number>(1); // 1 for black, 2 for white
   const [winner, setWinner] = useState<number | null>(null);
@@ -47,6 +47,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, on
   const prevTotalScoreRef = useRef<number>(initialScore);
   const hasMountedScoreEffectRef = useRef<boolean>(false);
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
+  const [isResettingRun, setIsResettingRun] = useState<boolean>(false);
   const timerAnimation = useRef(new Animated.Value(1)).current;
   const controlsScrollRef = useRef<ScrollView | null>(null);
   const winSoundRef = useRef<Audio.Sound | null>(null);
@@ -345,6 +346,44 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, on
   const scrollControlsToEnd = () => {
     controlsScrollRef.current?.scrollToEnd({ animated: true });
   };
+
+  const performStartFreshRun = () => {
+    if (isResettingRun) return;
+
+    void (async () => {
+      try {
+        setIsResettingRun(true);
+        if (onStartFreshRun) {
+          await onStartFreshRun(totalScore);
+        }
+
+        setShowFireworks(false);
+        setTotalScore(0);
+        prevTotalScoreRef.current = 0;
+        setAiDifficulty('intermediate');
+        handleRestart();
+      } finally {
+        setIsResettingRun(false);
+      }
+    })();
+  };
+
+  const handleStartFreshRun = () => {
+    if (isResettingRun) return;
+
+    Alert.alert(
+      'Start a new game run?',
+      'This resets your current score to 0 and starts a new run. Your previous score will be saved to the leaderboard.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: performStartFreshRun,
+        },
+      ]
+    );
+  };
   
   // Handle time up - player loses their turn or makes a random move
   const handleTimeUp = () => {
@@ -510,11 +549,13 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onExit, on
               <Text style={styles.expertBadgeText}>고급 자동 전환</Text>
             </View>
           ) : null}
-          {onExit && (
-            <TouchableOpacity onPress={onExit} style={styles.exitButton}>
-              <Text style={styles.exitButtonText}>홈</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            onPress={handleStartFreshRun}
+            style={[styles.exitButton, isResettingRun && styles.resetButtonDisabled]}
+            disabled={isResettingRun}
+          >
+            <Text style={styles.exitButtonText}>{isResettingRun ? '...' : 'Reset game'}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Two-segment bar */}
@@ -754,6 +795,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  resetButtonDisabled: {
+    opacity: 0.6,
   },
   boardWrapper: {
     position: 'relative',

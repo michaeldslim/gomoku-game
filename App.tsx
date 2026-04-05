@@ -11,7 +11,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Game from './src/components/Game';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
-import { addLeaderboardEntry, fetchStartupScore } from './src/services/leaderboard';
+import { addLeaderboardEntry, fetchStartupScore, startFreshRun } from './src/services/leaderboard';
 
 type Screen = 'home' | 'game' | 'leaderboard';
 
@@ -33,6 +33,11 @@ function AppContent() {
     []
   );
 
+  const handleStartFreshRun = useCallback(async (currentScore: number) => {
+    await startFreshRun(currentScore);
+    setStartupScore(0);
+  }, []);
+
   const handleStartGame = useCallback(async () => {
     setIsStartingGame(true);
     const initial = await fetchStartupScore();
@@ -47,7 +52,7 @@ function AppContent() {
         <Game
           initialScore={startupScore}
           onScoreUpdate={handleScoreUpdate}
-          onExit={() => setScreen('home')}
+          onStartFreshRun={handleStartFreshRun}
           onLeaderboard={() => goToLeaderboard('game')}
         />
         {screen === 'leaderboard' && (
