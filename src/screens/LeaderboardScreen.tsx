@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -23,7 +23,7 @@ export default function LeaderboardScreen({ onBack }: Props) {
   const topEntries = entries.filter((item) => item.score >= 100);
   const bottomEntries = entries.filter((item) => {
     if (item.score >= 100) return false;
-    const ts = new Date(item.createdAt).getTime();
+    const ts = new Date(item.playedAt).getTime();
     return Number.isFinite(ts) && ts >= oneWeekAgo;
   });
 
@@ -82,7 +82,8 @@ export default function LeaderboardScreen({ onBack }: Props) {
         <Text style={styles.rank}>{rankEmoji}</Text>
         <View style={styles.infoCol}>
           <Text style={styles.scoreLine}>Score: {item.score}</Text>
-          <Text style={styles.dateLine}>Date: {item.date}</Text>
+          <Text style={styles.dateLine}>Last Played: {item.date}</Text>
+          <Text style={styles.dateLine}>Started: {item.createdAt.slice(0, 10)}</Text>
         </View>
         <View style={[styles.scorePill, item.score >= 100 && styles.masterPill]}>
           <Text style={[styles.scoreText, item.score >= 100 && styles.masterScoreText]}>
@@ -133,16 +134,13 @@ export default function LeaderboardScreen({ onBack }: Props) {
           <Text style={styles.emptySubtext}>게임에서 승리하여 첫 번째 플레이어가 되세요!</Text>
         </View>
       ) : (
-        <FlatList
-          data={[{ key: 'sections' }]}
-          keyExtractor={(item) => item.key}
-          renderItem={() => (
-            <View style={styles.list}>
-              {renderSection('🏆 TOP (100+)', topEntries)}
-              {renderSection('🎯 BOTTOM (<100)', bottomEntries)}
-            </View>
-          )}
-        />
+        <ScrollView
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator
+        >
+          {renderSection('🏆 TOP (100+)', topEntries)}
+          {renderSection('🎯 BOTTOM (<100)', bottomEntries)}
+        </ScrollView>
       )}
     </View>
   );

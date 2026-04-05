@@ -7,6 +7,13 @@ interface LocalLeaderboardRecord {
   id: string;
   score: number;
   createdAt: string;
+  updatedAt: string;
+}
+
+interface LegacyLocalLeaderboardRecord {
+  id: string;
+  score: number;
+  createdAt: string;
 }
 
 export interface LeaderboardEntry {
@@ -14,6 +21,7 @@ export interface LeaderboardEntry {
   id: string;
   score: number;
   createdAt: string;
+  playedAt: string;
   date: string;
 }
 
@@ -32,12 +40,29 @@ const readRecords = async (): Promise<LocalLeaderboardRecord[]> => {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item): item is LocalLeaderboardRecord =>
-        typeof item?.id === 'string' &&
-        typeof item?.score === 'number' &&
-        typeof item?.createdAt === 'string'
-    );
+    const normalized = parsed
+      .map((item): LocalLeaderboardRecord | null => {
+        if (
+          typeof item?.id !== 'string' ||
+          typeof item?.score !== 'number' ||
+          typeof item?.createdAt !== 'string'
+        ) {
+          return null;
+        }
+
+        const legacyRecord = item as LegacyLocalLeaderboardRecord;
+        const updatedAt = typeof item?.updatedAt === 'string' ? item.updatedAt : legacyRecord.createdAt;
+
+        return {
+          id: legacyRecord.id,
+          score: legacyRecord.score,
+          createdAt: legacyRecord.createdAt,
+          updatedAt,
+        };
+      })
+      .filter((item): item is LocalLeaderboardRecord => item !== null);
+
+    return normalized;
   } catch {
     return [];
   }
@@ -50,7 +75,7 @@ const writeRecords = async (records: LocalLeaderboardRecord[]): Promise<void> =>
 export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
   const records = await readRecords();
   const sorted = [...records].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   );
 
   return sorted.map((row, index) => ({
@@ -58,7 +83,8 @@ export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
     id: row.id,
     score: row.score,
     createdAt: row.createdAt,
-    date: formatDate(row.createdAt),
+    playedAt: row.updatedAt,
+    date: formatDate(row.updatedAt),
   }));
 }
 
@@ -81,17 +107,17 @@ export async function addLeaderboardEntry(score: number): Promise<void> {
 
   const records = await readRecords();
   const latest = records[0];
+  const now = new Date().toISOString();
 
   let next: LocalLeaderboardRecord[];
 
-  // Same run: score is increasing, so override latest score only.
+  // Same run: score is increasing, so update latest score and latest played time.
   if (latest && score > latest.score) {
-    next = [{ ...latest, score }, ...records.slice(1)];
+    next = [{ ...latest, score, updatedAt: now }, ...records.slice(1)];
   } else {
     // New run (e.g. after fireworks reset to 0, next win starts from a lower score).
-    const now = new Date().toISOString();
     const id = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-    next = [{ id, score, createdAt: now }, ...records];
+    next = [{ id, score, createdAt: now, updatedAt: now }, ...records];
   }
 
   next = next.slice(0, LEADERBOARD_MAX_ENTRIES);
