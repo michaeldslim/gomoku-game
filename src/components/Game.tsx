@@ -11,7 +11,7 @@ import {
   checkWin, 
   isBoardFull 
 } from '../utils/gameLogic';
-import { findBestMove, AIDifficulty } from '../utils/aiLogic';
+import { findBestMove, AIDifficulty, EXPERT_TOP_POOL_EASY, EXPERT_TOP_POOL_MEDIUM, EXPERT_TOP_POOL_HARD } from '../utils/aiLogic';
 
 const TIMER_DURATION = 10; // 10 seconds per turn
 const EXPERT_THRESHOLD = 80;
@@ -36,6 +36,8 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>(
     initialScore >= EXPERT_THRESHOLD ? 'expert' : 'intermediate'
   );
+  // expertLevel maps to pool size constants: HARD=1, MEDIUM=2, EASY=3
+  const [expertLevel, setExpertLevel] = useState<typeof EXPERT_TOP_POOL_HARD | typeof EXPERT_TOP_POOL_MEDIUM | typeof EXPERT_TOP_POOL_EASY>(EXPERT_TOP_POOL_EASY);
   const [boardHistory, setBoardHistory] = useState<Array<{
     board: number[][];
     currentPlayer: number;
@@ -263,7 +265,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     
     // Add a small delay to simulate AI "thinking"
     setTimeout(() => {
-      const { row, col } = findBestMove(boardState, AI_PLAYER, aiDifficulty);
+      const { row, col } = findBestMove(boardState, AI_PLAYER, aiDifficulty, expertLevel);
       makeMove(row, col, AI_PLAYER, boardState);
       setAiThinking(false);
     }, 1000);
@@ -418,7 +420,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
   
   // Timer countdown effect
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     
     // Only run timer if timer is enabled, game is active and not in AI thinking mode
     if (timerEnabled && winner === null && timerActive && !(vsAI && currentPlayer === AI_PLAYER && !aiThinking)) {
@@ -665,6 +667,32 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
               </View>
             )}
 
+            {vsAI && aiDifficulty === 'expert' && (
+              <View style={styles.inlineGroup}>
+                <Text style={styles.controlLabel}>고급 레벨</Text>
+                <View style={styles.chipGroup}>
+                  <TouchableOpacity
+                    style={[styles.chip, expertLevel === EXPERT_TOP_POOL_EASY && styles.chipActiveExpert]}
+                    onPress={() => setExpertLevel(EXPERT_TOP_POOL_EASY)}
+                  >
+                    <Text style={[styles.chipText, expertLevel === EXPERT_TOP_POOL_EASY && styles.chipTextActive]}>하</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.chip, expertLevel === EXPERT_TOP_POOL_MEDIUM && styles.chipActiveExpert]}
+                    onPress={() => setExpertLevel(EXPERT_TOP_POOL_MEDIUM)}
+                  >
+                    <Text style={[styles.chipText, expertLevel === EXPERT_TOP_POOL_MEDIUM && styles.chipTextActive]}>중</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.chip, expertLevel === EXPERT_TOP_POOL_HARD && styles.chipActiveExpert]}
+                    onPress={() => setExpertLevel(EXPERT_TOP_POOL_HARD)}
+                  >
+                    <Text style={[styles.chipText, expertLevel === EXPERT_TOP_POOL_HARD && styles.chipTextActive]}>상</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
             <View style={styles.inlineGroup}>
               <Text style={styles.controlLabel}>타이머</Text>
               <View style={styles.chipGroup}>
@@ -897,6 +925,10 @@ const styles = StyleSheet.create({
   chipActive: {
     borderColor: '#457B9D',
     backgroundColor: '#457B9D',
+  },
+  chipActiveExpert: {
+    borderColor: '#E63946',
+    backgroundColor: '#E63946',
   },
   chipText: {
     fontSize: 12,

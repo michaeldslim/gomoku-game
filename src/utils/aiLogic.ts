@@ -13,6 +13,11 @@ const BLOCK_WIN_SCORE = 90000000;
 // keeping it in 1 (hardest) - 5 (easier) range for balance
 const INTERMEDIATE_TOP_POOL_SIZE = 4;
 
+// Expert sub-level pool sizes: 1 (hardest), 2 (medium), 3 (easiest)
+const EXPERT_TOP_POOL_EASY = 3; // default
+const EXPERT_TOP_POOL_MEDIUM = 2;
+const EXPERT_TOP_POOL_HARD = 1;
+
 const getOffensiveScore = (count: number, openEnds: number): number => {
   if (count >= 5) return WIN_SCORE;
   if (count === 4 && openEnds === 2) return 1000000;
@@ -222,11 +227,13 @@ const evaluateExpertMove = (
 };
 
 export type AIDifficulty = 'intermediate' | 'expert';
+export { EXPERT_TOP_POOL_EASY, EXPERT_TOP_POOL_MEDIUM, EXPERT_TOP_POOL_HARD };
 
 export const findBestMove = (
   board: number[][],
   aiPlayer: number,
   difficulty: AIDifficulty = 'intermediate',
+  expertTopK: number = EXPERT_TOP_POOL_EASY,
 ): { row: number; col: number } => {
   const candidates = getCandidateMoves(board);
   const humanPlayer = aiPlayer === 1 ? 2 : 1;
@@ -246,16 +253,17 @@ export const findBestMove = (
   }
 
   // Expert mode: priority-tiered scoring with fork detection
-  let bestScore = -Infinity;
-  let bestMove = candidates[0] ?? { row: 0, col: 0 };
+  const expertScored = candidates
+    .map(({ row, col }) => ({ row, col, score: evaluateExpertMove(board, row, col, aiPlayer, humanPlayer) }))
+    .sort((a, b) => b.score - a.score);
 
-  for (const { row, col } of candidates) {
-    const score = evaluateExpertMove(board, row, col, aiPlayer, humanPlayer);
-    if (score > bestScore) {
-      bestScore = score;
-      bestMove = { row, col };
-    }
+  // If the top move is a critical action (win or block win), always take it
+  if (expertScored[0] && expertScored[0].score >= BLOCK_WIN_SCORE) {
+    return { row: expertScored[0].row, col: expertScored[0].col };
   }
 
-  return bestMove;
+  // For sub-levels: pick randomly from top K candidates (k=1 is hardest)
+  const topK = expertScored.slice(0, Math.min(expertTopK, expertScored.length));
+  const pick = topK[Math.floor(Math.random() * topK.length)] ?? expertScored[0];
+  return { row: pick.row, col: pick.col };
 };
