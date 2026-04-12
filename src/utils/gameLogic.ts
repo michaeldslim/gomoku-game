@@ -9,9 +9,9 @@ export const initializeBoard = (): number[][] => {
 // Check if the move is valid (cell is empty)
 export const isValidMove = (board: number[][], row: number, col: number): boolean => {
   return (
-    row > 0 &&
+    row >= 0 &&
     row < BOARD_SIZE &&
-    col > 0 &&
+    col >= 0 &&
     col < BOARD_SIZE &&
     board[row][col] === 0
   );
@@ -19,6 +19,16 @@ export const isValidMove = (board: number[][], row: number, col: number): boolea
 
 // Check for a win (5 in a row)
 export const checkWin = (board: number[][], row: number, col: number, player: number): boolean => {
+  return getWinningCells(board, row, col, player) !== null;
+};
+
+// Return the coordinates of the 5 (or more) stones forming the winning line, or null if no win.
+export const getWinningCells = (
+  board: number[][],
+  row: number,
+  col: number,
+  player: number,
+): { row: number; col: number }[] | null => {
   const directions = [
     [1, 0],   // horizontal
     [0, 1],   // vertical
@@ -27,45 +37,28 @@ export const checkWin = (board: number[][], row: number, col: number, player: nu
   ];
 
   for (const [dx, dy] of directions) {
-    let count = 1; // Start with 1 for the current stone
+    const cells: { row: number; col: number }[] = [{ row, col }];
 
-    // Check in positive direction
     for (let i = 1; i < 5; i++) {
-      const newRow = row + i * dx;
-      const newCol = col + i * dy;
-      if (
-        newRow >= 0 && newRow < BOARD_SIZE &&
-        newCol >= 0 && newCol < BOARD_SIZE &&
-        board[newRow][newCol] === player
-      ) {
-        count++;
-      } else {
-        break;
-      }
+      const r = row + i * dx;
+      const c = col + i * dy;
+      if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === player) {
+        cells.push({ row: r, col: c });
+      } else break;
     }
 
-    // Check in negative direction
     for (let i = 1; i < 5; i++) {
-      const newRow = row - i * dx;
-      const newCol = col - i * dy;
-      if (
-        newRow >= 0 && newRow < BOARD_SIZE &&
-        newCol >= 0 && newCol < BOARD_SIZE &&
-        board[newRow][newCol] === player
-      ) {
-        count++;
-      } else {
-        break;
-      }
+      const r = row - i * dx;
+      const c = col - i * dy;
+      if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === player) {
+        cells.push({ row: r, col: c });
+      } else break;
     }
 
-    // If 5 or more in a row, player wins
-    if (count >= 5) {
-      return true;
-    }
+    if (cells.length === 5) return cells;
   }
 
-  return false;
+  return null;
 };
 
 // Check if the board is full (draw)

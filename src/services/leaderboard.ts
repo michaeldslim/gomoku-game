@@ -78,9 +78,7 @@ const writeRecords = async (records: LocalLeaderboardRecord[]): Promise<void> =>
 
 export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
   const records = await readRecords();
-  const sorted = [...records].sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  );
+  const sorted = [...records].sort((a, b) => b.score - a.score);
 
   return sorted.map((row, index) => ({
     rank: index + 1,
