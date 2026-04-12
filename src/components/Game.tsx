@@ -49,6 +49,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
   const prevTotalScoreRef = useRef<number>(initialScore);
   const hasMountedScoreEffectRef = useRef<boolean>(false);
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
+  const [boardSize, setBoardSize] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
   const [isResettingRun, setIsResettingRun] = useState<boolean>(false);
   const timerAnimation = useRef(new Animated.Value(1)).current;
   const controlsScrollRef = useRef<ScrollView | null>(null);
@@ -79,7 +80,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
         await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
 
         const winResult = await Audio.Sound.createAsync(
-          require('../../assets/sounds/win.mp3'),
+          require('../../assets/sounds/you-won.mp3'),
           { shouldPlay: false }
         );
         const loseResult = await Audio.Sound.createAsync(
@@ -477,6 +478,16 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     }
   }, [currentPlayer, winner, timerEnabled]);
 
+  // Trigger fireworks on each human win
+  useEffect(() => {
+    if (winner !== HUMAN_PLAYER) return;
+    // If score just hit 100, the score-100 effect handles fireworks (4.5 s)
+    if (totalScore >= 100) return;
+    setShowFireworks(true);
+    const t = setTimeout(() => setShowFireworks(false), 3000);
+    return () => clearTimeout(t);
+  }, [winner]);
+
   // Trigger fireworks when score first reaches 100; sync score to DB
   useEffect(() => {
     if (!hasMountedScoreEffectRef.current) {
@@ -713,13 +724,19 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
           </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.boardWrapper}>
+      <View
+        style={styles.boardWrapper}
+        onLayout={e => {
+          const { width, height } = e.nativeEvent.layout;
+          setBoardSize({ width, height });
+        }}
+      >
         <Board 
           board={board} 
           onCellPress={handleCellPress} 
           lastMove={lastMove}
         />
-        <Fireworks visible={showFireworks} />
+        <Fireworks visible={showFireworks} width={boardSize.width} height={boardSize.height} />
       </View>
     </View>
   );
