@@ -52,6 +52,10 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
   const [boardSize, setBoardSize] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
   const [isResettingRun, setIsResettingRun] = useState<boolean>(false);
   const timerAnimation = useRef(new Animated.Value(1)).current;
+  const aiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const boardRef = useRef<number[][]>(initializeBoard());
+  const currentPlayerRef = useRef<number>(1);
+  const lastMoveRef = useRef<{ row: number; col: number } | null>(null);
   const controlsScrollRef = useRef<ScrollView | null>(null);
   const winSoundRef = useRef<Audio.Sound | null>(null);
   const loseSoundRef = useRef<Audio.Sound | null>(null);
@@ -68,6 +72,11 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     });
   }
   
+  // Keep refs in sync with state so stale-closure callbacks can read the latest values
+  useEffect(() => { boardRef.current = board; }, [board]);
+  useEffect(() => { currentPlayerRef.current = currentPlayer; }, [currentPlayer]);
+  useEffect(() => { lastMoveRef.current = lastMove; }, [lastMove]);
+
   // AI is always player 2 (white)
   const AI_PLAYER = 2;
   const HUMAN_PLAYER = 1;
@@ -265,7 +274,8 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     setAiThinking(true);
     
     // Add a small delay to simulate AI "thinking"
-    setTimeout(() => {
+    aiTimeoutRef.current = setTimeout(() => {
+      aiTimeoutRef.current = null;
       const { row, col } = findBestMove(boardState, AI_PLAYER, aiDifficulty, expertLevel);
       makeMove(row, col, AI_PLAYER, boardState);
       setAiThinking(false);
@@ -287,16 +297,18 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     // Save snapshot for undo before making the move
     setBoardHistory(prev => [...prev, { board: board.map(r => [...r]), currentPlayer, lastMove }]);
     
-    // Make the human move
-    const gameEnded = makeMove(row, col, currentPlayer, board);
-    
-    // If playing against AI and the game hasn't ended, make AI move
-    if (vsAI && !gameEnded && currentPlayer === AI_PLAYER) {
-      makeAIMove(board);
-    }
+    // Make the human move — AI turn is triggered by the currentPlayer useEffect
+    makeMove(row, col, currentPlayer, board);
   };
 
   const handleRestart = () => {
+    // Cancel any pending AI move from the previous game
+    if (aiTimeoutRef.current) {
+      clearTimeout(aiTimeoutRef.current);
+      aiTimeoutRef.current = null;
+    }
+    setAiThinking(false);
+
     const newBoard = initializeBoard();
     setBoard(newBoard);
     setCurrentPlayer(HUMAN_PLAYER);
@@ -306,10 +318,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     setBoardHistory([]);
     setUndoCount(3);
     undosUsedThisGameRef.current = 0;
-
-    if (vsAI && currentPlayer === AI_PLAYER) {
-      makeAIMove(newBoard);
-    }
+    // Human (black) always goes first on restart — AI move is triggered by the useEffect
   };
 
   const handleUndo = () => {
@@ -390,9 +399,14 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
   
   // Handle time up - player loses their turn or makes a random move
   const handleTimeUp = () => {
+    // Read from refs so this always operates on the latest board/player,
+    // even when called from inside a stale setInterval closure.
+    const currentBoard = boardRef.current;
+    const player = currentPlayerRef.current;
+
     // If it's AI's turn and time is up, make a move anyway
-    if (vsAI && currentPlayer === AI_PLAYER) {
-      makeAIMove(board);
+    if (vsAI && player === AI_PLAYER) {
+      makeAIMove(currentBoard);
       return;
     }
     
@@ -402,7 +416,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     // Find all empty positions
     for (let row = 0; row < BOARD_SIZE; row++) {
       for (let col = 0; col < BOARD_SIZE; col++) {
-        if (isValidMove(board, row, col)) {
+        if (isValidMove(currentBoard, row, col)) {
           emptyPositions.push({row, col});
         }
       }
@@ -412,7 +426,9 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     if (emptyPositions.length > 0) {
       const randomIndex = Math.floor(Math.random() * emptyPositions.length);
       const {row, col} = emptyPositions[randomIndex];
-      makeMove(row, col, currentPlayer, board);
+      // Save undo snapshot so the player can undo a timer-forced move
+      setBoardHistory(prev => [...prev, { board: currentBoard.map(r => [...r]), currentPlayer: player, lastMove: lastMoveRef.current }]);
+      makeMove(row, col, player, currentBoard);
     } else {
       // No empty positions, game is a draw
       setWinner(0);
@@ -436,13 +452,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
           return prevTime - 1;
         });
       }, 1000);
-      
-      // Animate the timer
-      Animated.timing(timerAnimation, {
-        toValue: 0,
-        duration: TIMER_DURATION * 1000,
-        useNativeDriver: false,
-      }).start();
+      // Animation is started by the turn-reset effect to avoid double-firing
     }
     
     return () => {
@@ -455,7 +465,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     if (vsAI && currentPlayer === AI_PLAYER && winner === null && !aiThinking) {
       // Pause the timer during AI thinking
       setTimerActive(false);
-      makeAIMove(board);
+      makeAIMove(boardRef.current);
     }
   }, [currentPlayer, vsAI, winner]);
   

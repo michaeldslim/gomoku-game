@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Platform, ScrollView, useWindowDimensions } from 'react-native';
 import Stone from './Stone';
+import { BOARD_SIZE } from '../utils/gameLogic';
 
 interface BoardProps {
   board: number[][];
@@ -9,7 +10,6 @@ interface BoardProps {
 }
 
 const CELL_SIZE = 30;
-const BOARD_SIZE = 16;
 const BOARD_PADDING = 15;
 const STONE_SIZE = 24; // Match the stone size
 
