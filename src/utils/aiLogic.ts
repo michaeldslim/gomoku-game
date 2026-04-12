@@ -125,15 +125,17 @@ const getCandidateMoves = (board: number[][]): { row: number; col: number }[] =>
   return candidates;
 };
 
-// Count cells where a player can win in one move (used for fork detection)
+// Count cells where a player can win in one move (used for fork detection).
+// Uses in-place mutation + restore instead of copying the board per cell,
+// reducing this from O(n^4) to O(n^2).
 const countWinThreats = (board: number[][], player: number): number => {
   let count = 0;
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE; c++) {
-      if (!isValidMove(board, r, c)) continue;
-      const test = board.map(row => [...row]);
-      test[r][c] = player;
-      if (checkWin(test, r, c, player)) count++;
+      if (board[r][c] !== 0) continue;
+      board[r][c] = player;
+      if (checkWin(board, r, c, player)) count++;
+      board[r][c] = 0;
     }
   }
   return count;

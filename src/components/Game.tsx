@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, Animated, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, Text, Animated, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { Audio } from 'expo-av';
 import Board from './Board';
 import GameStatus from './GameStatus';
@@ -9,7 +9,8 @@ import {
   initializeBoard, 
   isValidMove, 
   checkWin, 
-  isBoardFull 
+  isBoardFull,
+  getWinningCells,
 } from '../utils/gameLogic';
 import { findBestMove, AIDifficulty, EXPERT_TOP_POOL_EASY, EXPERT_TOP_POOL_MEDIUM, EXPERT_TOP_POOL_HARD } from '../utils/aiLogic';
 
@@ -49,6 +50,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
   const prevTotalScoreRef = useRef<number>(initialScore);
   const hasMountedScoreEffectRef = useRef<boolean>(false);
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
+  const [winningCells, setWinningCells] = useState<{ row: number; col: number }[] | null>(null);
   const [boardSize, setBoardSize] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
   const [isResettingRun, setIsResettingRun] = useState<boolean>(false);
   const timerAnimation = useRef(new Animated.Value(1)).current;
@@ -242,15 +244,18 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     if (checkWin(newBoard, row, col, player)) {
       setBoard(newBoard);
       setWinner(player);
+      setWinningCells(getWinningCells(newBoard, row, col, player));
       // Award score only when human wins vs AI
       if (vsAI && player === HUMAN_PLAYER) {
         const gained = Math.max(0, 10 - undosUsedThisGameRef.current);
         setTotalScore(prev => {
-          const next = prev + gained;
+          // Clamp gain to what's actually remaining so displayed gain = actual delta
+          const actualGained = Math.min(gained, 100 - prev);
+          const next = prev + actualGained;
           if (next >= 80) {
             setAiDifficulty('expert');
           }
-          return Math.min(next, 100); // cap at master threshold
+          return next;
         });
       }
       return true; // Game ended
@@ -313,6 +318,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     setBoard(newBoard);
     setCurrentPlayer(HUMAN_PLAYER);
     setWinner(null);
+    setWinningCells(null);
     setLastMove(null);
     lastPlayedWinnerRef.current = null;
     setBoardHistory([]);
@@ -322,13 +328,14 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
   };
 
   const handleUndo = () => {
-    if (undoCount <= 0 || boardHistory.length === 0 || aiThinking) return;
+    if (undoCount <= 0 || boardHistory.length === 0 || aiThinking || winner !== null) return;
     const prev = boardHistory[boardHistory.length - 1];
     setBoardHistory(h => h.slice(0, -1));
     setBoard(prev.board);
     setCurrentPlayer(prev.currentPlayer);
     setLastMove(prev.lastMove);
     setWinner(null);
+    setWinningCells(null);
     setUndoCount(c => c - 1);
     undosUsedThisGameRef.current += 1;
   };
@@ -669,10 +676,15 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
                 <Text style={styles.controlLabel}>난이도</Text>
                 <View style={styles.chipGroup}>
                   <TouchableOpacity
-                    style={[styles.chip, aiDifficulty === 'intermediate' && styles.chipActive]}
+                    style={[
+                      styles.chip,
+                      aiDifficulty === 'intermediate' && styles.chipActive,
+                      totalScore >= EXPERT_THRESHOLD && styles.chipDisabled,
+                    ]}
                     onPress={() => {
-                      if (aiDifficulty !== 'intermediate') toggleAIDifficulty();
+                      if (aiDifficulty !== 'intermediate' && totalScore < EXPERT_THRESHOLD) toggleAIDifficulty();
                     }}
+                    disabled={totalScore >= EXPERT_THRESHOLD}
                   >
                     <Text style={[styles.chipText, aiDifficulty === 'intermediate' && styles.chipTextActive]}>중급</Text>
                   </TouchableOpacity>
@@ -745,8 +757,15 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
           board={board} 
           onCellPress={handleCellPress} 
           lastMove={lastMove}
+          winningCells={winningCells}
         />
         <Fireworks visible={showFireworks} width={boardSize.width} height={boardSize.height} />
+        {aiThinking && vsAI && (
+          <View style={styles.aiThinkingOverlay} pointerEvents="none">
+            <ActivityIndicator size="small" color="#457B9D" />
+            <Text style={styles.aiThinkingText}>AI 생각 중...</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -858,6 +877,23 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignSelf: 'stretch',
   },
+  aiThinkingOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  aiThinkingText: {
+    fontSize: 12,
+    color: '#457B9D',
+    fontWeight: '600',
+  },
   timerContainer: {
     alignSelf: 'stretch',
     marginHorizontal: 16,
@@ -948,6 +984,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     minWidth: 44,
     alignItems: 'center',
+  },
+  chipDisabled: {
+    opacity: 0.35,
   },
   chipActive: {
     borderColor: '#457B9D',

@@ -7,13 +7,14 @@ interface BoardProps {
   board: number[][];
   onCellPress: (row: number, col: number) => void;
   lastMove?: { row: number; col: number } | null;
+  winningCells?: { row: number; col: number }[] | null;
 }
 
 const CELL_SIZE = 30;
 const BOARD_PADDING = 15;
 const STONE_SIZE = 24; // Match the stone size
 
-const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove }) => {
+const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCells }) => {
   const { height: screenHeight } = useWindowDimensions();
   // Reserve space for UI above the board (status bar, controls, etc.)
   const maxBoardVisibleHeight = screenHeight * 0.55;
@@ -24,6 +25,11 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove }) => {
   const boardPixelSize = CELL_SIZE * (boardSize - 1) + BOARD_PADDING * 2;
   const centerLineIndex = Math.floor(boardSize / 2);
   const boardCenterOffset = centerLineIndex * CELL_SIZE;
+
+  // Build a Set for O(1) winning-cell lookup
+  const winningSet = winningCells
+    ? new Set(winningCells.map(c => `${c.row},${c.col}`))
+    : null;
 
   // Create grid lines
   const renderGridLines = () => {
@@ -60,6 +66,7 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove }) => {
       for (let col = 0; col < boardSize; col++) {
         const stoneValue = board[row]?.[col] ?? 0;
         const isHighlighted = !!lastMove && lastMove.row === row && lastMove.col === col;
+        const isWinningStone = !!winningSet?.has(`${row},${col}`);
         points.push(
           <TouchableOpacity
             key={`point-${row}-${col}`}
@@ -70,7 +77,7 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove }) => {
             onPress={() => onCellPress(row, col)}
             activeOpacity={1}
           >
-            {stoneValue !== 0 && <Stone player={stoneValue} isHighlighted={isHighlighted} />}
+            {stoneValue !== 0 && <Stone player={stoneValue} isHighlighted={isHighlighted} isWinningStone={isWinningStone} />}
           </TouchableOpacity>
         );
       }
