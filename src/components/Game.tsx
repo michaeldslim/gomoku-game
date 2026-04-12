@@ -91,7 +91,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
         await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
 
         const winResult = await Audio.Sound.createAsync(
-          require('../../assets/sounds/you-won.mp3'),
+          require('../../assets/sounds/win.mp3'),
           { shouldPlay: false }
         );
         const loseResult = await Audio.Sound.createAsync(
