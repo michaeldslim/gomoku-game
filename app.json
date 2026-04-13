@@ -3,18 +3,19 @@
     "name": "Gomoku",
     "slug": "gomoku-game",
     "scheme": "gomoku-game",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon-ios-square.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon-ios-square.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mike008.gomokugame"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +23,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.gomokugame"
+      "package": "com.mike008.gomokugame"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,7 +34,7 @@
     "updates": {
       "url": "https://u.expo.dev/174f040a-54d5-40cd-927a-c7a304b8d90a"
     },
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": "2.0.0",
     "extra": {
       "eas": {
         "projectId": "174f040a-54d5-40cd-927a-c7a304b8d90a"

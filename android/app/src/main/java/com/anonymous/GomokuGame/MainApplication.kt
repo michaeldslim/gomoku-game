@@ -1,4 +1,4 @@
-package com.anonymous.gomokugame
+package com.mike008.gomokugame
 
 import android.app.Application
 import android.content.res.Configuration

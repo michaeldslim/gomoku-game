@@ -1,4 +1,4 @@
-package com.anonymous.gomokugame
+package com.mike008.gomokugame
 
 import android.os.Build
 import android.os.Bundle
