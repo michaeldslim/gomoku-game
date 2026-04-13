@@ -6,6 +6,10 @@ jspm_packages/
 .expo/
 eas.json
 
+ios/
+ios/build/
+ios/Pods/
+
 # npm lockfile (using npm now)
 # ignore yarn lock since we're using npm
 yarn.lock
