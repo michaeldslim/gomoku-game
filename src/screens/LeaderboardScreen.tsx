@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { clearLeaderboard, fetchLeaderboard, LeaderboardEntry } from '../services/leaderboard';
+import { fetchUserSettings } from '../services/settings';
 
 interface Props {
   onBack: () => void;
@@ -18,6 +19,7 @@ interface Props {
 export default function LeaderboardScreen({ onBack }: Props) {
   const insets = useSafeAreaInsets();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [userHandle, setUserHandle] = useState('');
   const [loading, setLoading] = useState(true);
   const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const topEntries = entries.filter((item) => item.score >= 100);
@@ -29,8 +31,9 @@ export default function LeaderboardScreen({ onBack }: Props) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await fetchLeaderboard();
+    const [data, settings] = await Promise.all([fetchLeaderboard(), fetchUserSettings()]);
     setEntries(data);
+    setUserHandle(settings.userHandle.trim());
     setLoading(false);
   }, []);
 
@@ -138,6 +141,12 @@ export default function LeaderboardScreen({ onBack }: Props) {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator
         >
+          {userHandle.length > 0 && (
+            <View style={styles.handleCard}>
+              <Text style={styles.handleLabel}>User Handle</Text>
+              <Text style={styles.handleValue}>{userHandle}</Text>
+            </View>
+          )}
           {renderSection('🏆 TOP (100+)', topEntries)}
           {renderSection('🎯 BOTTOM (<100)', bottomEntries)}
         </ScrollView>
@@ -214,6 +223,24 @@ const styles = StyleSheet.create({
     padding: 10,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+  },
+  handleCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  handleLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  handleValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   sectionTitle: {
     fontSize: 14,

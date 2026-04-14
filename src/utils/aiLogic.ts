@@ -231,14 +231,38 @@ const evaluateExpertMove = (
 export type AIDifficulty = 'intermediate' | 'expert';
 export { EXPERT_TOP_POOL_EASY, EXPERT_TOP_POOL_MEDIUM, EXPERT_TOP_POOL_HARD };
 
-export const findBestMove = (
+const normalizeIntermediatePoolSize = (value: number): number => {
+  if (!Number.isFinite(value)) return INTERMEDIATE_TOP_POOL_SIZE;
+  return Math.min(5, Math.max(1, Math.floor(value)));
+};
+
+const normalizeExpertTopK = (value: number): number => {
+  if (!Number.isFinite(value)) return EXPERT_TOP_POOL_EASY;
+  return Math.min(EXPERT_TOP_POOL_EASY, Math.max(EXPERT_TOP_POOL_HARD, Math.floor(value)));
+};
+
+interface FindBestMoveOptions {
+  expertTopK?: number;
+  intermediateTopPoolSize?: number;
+}
+
+export function findBestMove(
   board: number[][],
   aiPlayer: number,
   difficulty: AIDifficulty = 'intermediate',
-  expertTopK: number = EXPERT_TOP_POOL_EASY,
-): { row: number; col: number } => {
+  optionsOrExpertTopK: FindBestMoveOptions | number = {},
+  intermediateTopPoolSizeArg?: number,
+): { row: number; col: number } {
   const candidates = getCandidateMoves(board);
   const humanPlayer = aiPlayer === 1 ? 2 : 1;
+  const options: FindBestMoveOptions =
+    typeof optionsOrExpertTopK === 'number'
+      ? { expertTopK: optionsOrExpertTopK, intermediateTopPoolSize: intermediateTopPoolSizeArg }
+      : (optionsOrExpertTopK ?? {});
+  const resolvedIntermediateTopPoolSize = normalizeIntermediatePoolSize(
+    options.intermediateTopPoolSize ?? INTERMEDIATE_TOP_POOL_SIZE
+  );
+  const resolvedExpertTopK = normalizeExpertTopK(options.expertTopK ?? EXPERT_TOP_POOL_EASY);
 
   if (difficulty === 'intermediate') {
     const scoredMoves = candidates
@@ -249,7 +273,7 @@ export const findBestMove = (
       return { row: scoredMoves[0].row, col: scoredMoves[0].col };
     }
 
-    const topPool = scoredMoves.slice(0, Math.min(INTERMEDIATE_TOP_POOL_SIZE, scoredMoves.length));
+    const topPool = scoredMoves.slice(0, Math.min(resolvedIntermediateTopPoolSize, scoredMoves.length));
     const pick = topPool[Math.floor(Math.random() * topPool.length)] ?? { row: 0, col: 0 };
     return { row: pick.row, col: pick.col };
   }
@@ -265,7 +289,7 @@ export const findBestMove = (
   }
 
   // For sub-levels: pick randomly from top K candidates (k=1 is hardest)
-  const topK = expertScored.slice(0, Math.min(expertTopK, expertScored.length));
+  const topK = expertScored.slice(0, Math.min(resolvedExpertTopK, expertScored.length));
   const pick = topK[Math.floor(Math.random() * topK.length)] ?? expertScored[0];
   return { row: pick.row, col: pick.col };
-};
+}

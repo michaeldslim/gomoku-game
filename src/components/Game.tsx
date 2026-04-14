@@ -12,7 +12,7 @@ import {
   isBoardFull,
   getWinningCells,
 } from '../utils/gameLogic';
-import { findBestMove, AIDifficulty, EXPERT_TOP_POOL_EASY, EXPERT_TOP_POOL_MEDIUM, EXPERT_TOP_POOL_HARD } from '../utils/aiLogic';
+import { findBestMove, AIDifficulty } from '../utils/aiLogic';
 
 const TIMER_DURATION = 10; // 10 seconds per turn
 const EXPERT_THRESHOLD = 80;
@@ -22,9 +22,20 @@ interface GameProps {
   onScoreUpdate?: (score: number) => void;
   onStartFreshRun?: (currentScore: number) => Promise<void> | void;
   onLeaderboard?: () => void;
+  onSettings?: () => void;
+  intermediateTopPoolSize?: number;
+  expertTopPool?: number;
 }
 
-const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFreshRun, onLeaderboard }) => {
+const Game: React.FC<GameProps> = ({
+  initialScore = 0,
+  onScoreUpdate,
+  onStartFreshRun,
+  onLeaderboard,
+  onSettings,
+  intermediateTopPoolSize = 4,
+  expertTopPool = 3,
+}) => {
   const [board, setBoard] = useState<number[][]>(initializeBoard());
   const [currentPlayer, setCurrentPlayer] = useState<number>(1); // 1 for black, 2 for white
   const [winner, setWinner] = useState<number | null>(null);
@@ -37,8 +48,6 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>(
     initialScore >= EXPERT_THRESHOLD ? 'expert' : 'intermediate'
   );
-  // expertLevel maps to pool size constants: HARD=1, MEDIUM=2, EASY=3
-  const [expertLevel, setExpertLevel] = useState<typeof EXPERT_TOP_POOL_HARD | typeof EXPERT_TOP_POOL_MEDIUM | typeof EXPERT_TOP_POOL_EASY>(EXPERT_TOP_POOL_EASY);
   const [boardHistory, setBoardHistory] = useState<Array<{
     board: number[][];
     currentPlayer: number;
@@ -281,7 +290,11 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     // Add a small delay to simulate AI "thinking"
     aiTimeoutRef.current = setTimeout(() => {
       aiTimeoutRef.current = null;
-      const { row, col } = findBestMove(boardState, AI_PLAYER, aiDifficulty, expertLevel);
+      const aiMoveOptions: any = {
+        expertTopK: expertTopPool,
+        intermediateTopPoolSize,
+      };
+      const { row, col } = findBestMove(boardState, AI_PLAYER, aiDifficulty, aiMoveOptions);
       makeMove(row, col, AI_PLAYER, boardState);
       setAiThinking(false);
     }, 1000);
@@ -306,7 +319,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     makeMove(row, col, currentPlayer, board);
   };
 
-  const handleRestart = () => {
+  const handleRestart = ({ forceHumanStart = false }: { forceHumanStart?: boolean } = {}) => {
     // Cancel any pending AI move from the previous game
     if (aiTimeoutRef.current) {
       clearTimeout(aiTimeoutRef.current);
@@ -314,9 +327,13 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     }
     setAiThinking(false);
 
+    // If AI won the last game, let AI start on restart unless explicitly overridden.
+    const shouldAIStart = !forceHumanStart && vsAI && winner === AI_PLAYER;
+    const nextStartingPlayer = shouldAIStart ? AI_PLAYER : HUMAN_PLAYER;
+
     const newBoard = initializeBoard();
     setBoard(newBoard);
-    setCurrentPlayer(HUMAN_PLAYER);
+    setCurrentPlayer(nextStartingPlayer);
     setWinner(null);
     setWinningCells(null);
     setLastMove(null);
@@ -324,7 +341,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
     setBoardHistory([]);
     setUndoCount(3);
     undosUsedThisGameRef.current = 0;
-    // Human (black) always goes first on restart — AI move is triggered by the useEffect
+    // AI turn will auto-trigger via currentPlayer useEffect when nextStartingPlayer is AI.
   };
 
   const handleUndo = () => {
@@ -343,13 +360,9 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
   // Toggle between playing against human or AI
   const toggleAIMode = () => {
     setVsAI(!vsAI);
-    handleRestart();
+    handleRestart({ forceHumanStart: true });
   };
  
-  const toggleAIDifficulty = () => {
-    setAiDifficulty((prev) => (prev === 'intermediate' ? 'expert' : 'intermediate'));
-  };
-  
   // Toggle timer on/off
   const toggleTimer = () => {
     setTimerEnabled(!timerEnabled);
@@ -380,7 +393,7 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
         setTotalScore(0);
         prevTotalScoreRef.current = 0;
         setAiDifficulty('intermediate');
-        handleRestart();
+        handleRestart({ forceHumanStart: true });
       } finally {
         setIsResettingRun(false);
       }
@@ -671,61 +684,6 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
               </View>
             </View>
 
-            {vsAI && (
-              <View style={styles.inlineGroup}>
-                <Text style={styles.controlLabel}>난이도</Text>
-                <View style={styles.chipGroup}>
-                  <TouchableOpacity
-                    style={[
-                      styles.chip,
-                      aiDifficulty === 'intermediate' && styles.chipActive,
-                      totalScore >= EXPERT_THRESHOLD && styles.chipDisabled,
-                    ]}
-                    onPress={() => {
-                      if (aiDifficulty !== 'intermediate' && totalScore < EXPERT_THRESHOLD) toggleAIDifficulty();
-                    }}
-                    disabled={totalScore >= EXPERT_THRESHOLD}
-                  >
-                    <Text style={[styles.chipText, aiDifficulty === 'intermediate' && styles.chipTextActive]}>중급</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.chip, aiDifficulty === 'expert' && styles.chipActive]}
-                    onPress={() => {
-                      if (aiDifficulty !== 'expert') toggleAIDifficulty();
-                    }}
-                  >
-                    <Text style={[styles.chipText, aiDifficulty === 'expert' && styles.chipTextActive]}>고급</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {vsAI && aiDifficulty === 'expert' && (
-              <View style={styles.inlineGroup}>
-                <Text style={styles.controlLabel}>고급 레벨</Text>
-                <View style={styles.chipGroup}>
-                  <TouchableOpacity
-                    style={[styles.chip, expertLevel === EXPERT_TOP_POOL_EASY && styles.chipActiveExpert]}
-                    onPress={() => setExpertLevel(EXPERT_TOP_POOL_EASY)}
-                  >
-                    <Text style={[styles.chipText, expertLevel === EXPERT_TOP_POOL_EASY && styles.chipTextActive]}>하</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.chip, expertLevel === EXPERT_TOP_POOL_MEDIUM && styles.chipActiveExpert]}
-                    onPress={() => setExpertLevel(EXPERT_TOP_POOL_MEDIUM)}
-                  >
-                    <Text style={[styles.chipText, expertLevel === EXPERT_TOP_POOL_MEDIUM && styles.chipTextActive]}>중</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.chip, expertLevel === EXPERT_TOP_POOL_HARD && styles.chipActiveExpert]}
-                    onPress={() => setExpertLevel(EXPERT_TOP_POOL_HARD)}
-                  >
-                    <Text style={[styles.chipText, expertLevel === EXPERT_TOP_POOL_HARD && styles.chipTextActive]}>상</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
             <View style={styles.inlineGroup}>
               <Text style={styles.controlLabel}>타이머</Text>
               <View style={styles.chipGroup}>
@@ -739,6 +697,17 @@ const Game: React.FC<GameProps> = ({ initialScore = 0, onScoreUpdate, onStartFre
                 </TouchableOpacity>
               </View>
             </View>
+
+            {onSettings && (
+              <View style={styles.inlineGroup}>
+                <Text style={styles.controlLabel}>설정</Text>
+                <View style={styles.chipGroup}>
+                  <TouchableOpacity style={styles.chip} onPress={onSettings}>
+                    <Text style={styles.chipText}>⚙️ 열기</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </ScrollView>
 
           <TouchableOpacity style={styles.arrowButton} onPress={scrollControlsToEnd}>

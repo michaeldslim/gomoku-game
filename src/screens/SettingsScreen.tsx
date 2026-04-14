@@ -1,0 +1,269 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { EXPERT_TOP_POOL_EASY, EXPERT_TOP_POOL_HARD, EXPERT_TOP_POOL_MEDIUM } from '../utils/aiLogic';
+import {
+  DEFAULT_INTERMEDIATE_TOP_POOL_SIZE,
+  INTERMEDIATE_TOP_POOL_MAX,
+  INTERMEDIATE_TOP_POOL_MIN,
+  UserSettings,
+} from '../services/settings';
+
+interface Props {
+  initialSettings: UserSettings;
+  onBack: () => void;
+  onSave: (next: UserSettings) => Promise<void> | void;
+}
+
+const INTERMEDIATE_OPTIONS = [1, 2, 3, 4, 5];
+
+const EXPERT_OPTIONS: { label: string; value: number }[] = [
+  { label: 'Easy', value: EXPERT_TOP_POOL_EASY },
+  { label: 'Medium', value: EXPERT_TOP_POOL_MEDIUM },
+  { label: 'Hard', value: EXPERT_TOP_POOL_HARD },
+];
+
+const sanitizeIntermediateTopPoolSize = (value: number): number => {
+  if (!Number.isFinite(value)) return DEFAULT_INTERMEDIATE_TOP_POOL_SIZE;
+  const clamped = Math.min(INTERMEDIATE_TOP_POOL_MAX, Math.max(INTERMEDIATE_TOP_POOL_MIN, Math.floor(value)));
+  return clamped;
+};
+
+const sanitizeExpertTopPool = (value: number): number => {
+  if (value !== EXPERT_TOP_POOL_EASY && value !== EXPERT_TOP_POOL_MEDIUM && value !== EXPERT_TOP_POOL_HARD) {
+    return EXPERT_TOP_POOL_EASY;
+  }
+
+  return value;
+};
+
+export default function SettingsScreen({ initialSettings, onBack, onSave }: Props) {
+  const insets = useSafeAreaInsets();
+  const [userHandle, setUserHandle] = useState(initialSettings.userHandle);
+  const [intermediateTopPoolSize, setIntermediateTopPoolSize] = useState(initialSettings.intermediateTopPoolSize);
+  const [expertTopPool, setExpertTopPool] = useState(initialSettings.expertTopPool);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setUserHandle(initialSettings.userHandle);
+    setIntermediateTopPoolSize(initialSettings.intermediateTopPoolSize);
+    setExpertTopPool(initialSettings.expertTopPool);
+  }, [initialSettings]);
+
+  const hasChanges = useMemo(() => {
+    return (
+      userHandle.trim() !== initialSettings.userHandle ||
+      intermediateTopPoolSize !== initialSettings.intermediateTopPoolSize ||
+      expertTopPool !== initialSettings.expertTopPool
+    );
+  }, [userHandle, intermediateTopPoolSize, expertTopPool, initialSettings]);
+
+  const handleSave = async () => {
+    if (saving) return;
+
+    setSaving(true);
+    try {
+      const next: UserSettings = {
+        userHandle: userHandle.trim().slice(0, 24),
+        intermediateTopPoolSize: sanitizeIntermediateTopPoolSize(intermediateTopPoolSize),
+        expertTopPool: sanitizeExpertTopPool(expertTopPool),
+      };
+      await onSave(next);
+      onBack();
+    } catch {
+      Alert.alert('Error', 'Failed to save settings. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={[styles.header, { paddingTop: insets.top + 14 }]}> 
+        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+          <Text style={styles.backText}>뒤로</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>⚙️ Settings</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator>
+        <View style={styles.card}>
+          <Text style={styles.label}>User Handle</Text>
+          <TextInput
+            style={styles.input}
+            value={userHandle}
+            onChangeText={setUserHandle}
+            placeholder="Your handle"
+            maxLength={24}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <Text style={styles.hint}>Used for future profile/leaderboard labeling.</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>Intermediate Mode Pool (Score &lt; 80)</Text>
+          <Text style={styles.hint}>1 = hardest, 5 = easier</Text>
+          <View style={styles.chipRow}>
+            {INTERMEDIATE_OPTIONS.map((value) => (
+              <TouchableOpacity
+                key={value}
+                style={[styles.chip, intermediateTopPoolSize === value && styles.chipActive]}
+                onPress={() => setIntermediateTopPoolSize(value)}
+              >
+                <Text style={[styles.chipText, intermediateTopPoolSize === value && styles.chipTextActive]}>{value}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>Expert Mode Pool (Score &gt;= 80)</Text>
+          <Text style={styles.hint}>Select one: Easy, Medium, Hard</Text>
+          <View style={styles.chipRow}>
+            {EXPERT_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[styles.chip, expertTopPool === option.value && styles.chipActiveExpert]}
+                onPress={() => setExpertTopPool(option.value)}
+              >
+                <Text style={[styles.chipText, expertTopPool === option.value && styles.chipTextActive]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.saveButton, (!hasChanges || saving) && styles.buttonDisabled]}
+          onPress={handleSave}
+          disabled={!hasChanges || saving}
+        >
+          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Save Settings</Text>}
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F3EFE7',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#DDD8CE',
+  },
+  backButton: {
+    padding: 4,
+  },
+  backText: {
+    fontSize: 15,
+    color: '#457B9D',
+    fontWeight: '600',
+  },
+  title: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#212529',
+  },
+  headerSpacer: {
+    width: 36,
+  },
+  content: {
+    padding: 16,
+    gap: 12,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 14,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 8,
+  },
+  hint: {
+    fontSize: 12,
+    color: '#6C757D',
+    marginBottom: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: '#212529',
+    backgroundColor: '#F8FAFC',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    minWidth: 42,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+  },
+  chipActive: {
+    backgroundColor: '#457B9D',
+    borderColor: '#457B9D',
+  },
+  chipActiveExpert: {
+    backgroundColor: '#E63946',
+    borderColor: '#E63946',
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+  },
+  saveButton: {
+    marginTop: 8,
+    backgroundColor: '#457B9D',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+});
