@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -11,19 +11,40 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Game from './src/components/Game';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 import { addLeaderboardEntry, fetchStartupScore, startFreshRun } from './src/services/leaderboard';
+import { defaultUserSettings, fetchUserSettings, saveUserSettings, UserSettings } from './src/services/settings';
 
-type Screen = 'home' | 'game' | 'leaderboard';
+type Screen = 'home' | 'game' | 'leaderboard' | 'settings';
 
 function AppContent() {
   const [screen, setScreen] = useState<Screen>('home');
   const [startupScore, setStartupScore] = useState(0);
   const [isStartingGame, setIsStartingGame] = useState(false);
+  const [settings, setSettings] = useState<UserSettings>(defaultUserSettings());
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const prevScreenRef = useRef<Screen>('home');
+  const settingsFromRef = useRef<'home' | 'game'>('home');
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const stored = await fetchUserSettings();
+        setSettings(stored);
+      } finally {
+        setSettingsLoaded(true);
+      }
+    })();
+  }, []);
 
   const goToLeaderboard = useCallback((from: Screen) => {
     prevScreenRef.current = from;
     setScreen('leaderboard');
+  }, []);
+
+  const goToSettings = useCallback((from: 'home' | 'game') => {
+    settingsFromRef.current = from;
+    setScreen('settings');
   }, []);
 
   const handleScoreUpdate = useCallback(
@@ -46,7 +67,20 @@ function AppContent() {
     setIsStartingGame(false);
   }, []);
 
-  if (screen === 'game' || (screen === 'leaderboard' && prevScreenRef.current === 'game')) {
+  const handleSaveSettings = useCallback(async (next: UserSettings) => {
+    const saved = await saveUserSettings(next);
+    setSettings(saved);
+  }, []);
+
+  const handleSettingsBack = useCallback(() => {
+    setScreen(settingsFromRef.current);
+  }, []);
+
+  if (
+    screen === 'game' ||
+    (screen === 'leaderboard' && prevScreenRef.current === 'game') ||
+    (screen === 'settings' && settingsFromRef.current === 'game')
+  ) {
     return (
       <SafeAreaView style={styles.container}>
         <Game
@@ -54,11 +88,23 @@ function AppContent() {
           onScoreUpdate={handleScoreUpdate}
           onStartFreshRun={handleStartFreshRun}
           onLeaderboard={() => goToLeaderboard('game')}
+          onSettings={() => goToSettings('game')}
+          intermediateTopPoolSize={settings.intermediateTopPoolSize}
+          expertTopPool={settings.expertTopPool}
         />
         {screen === 'leaderboard' && (
           <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
             <LeaderboardScreen
               onBack={() => setScreen('game')}
+            />
+          </View>
+        )}
+        {screen === 'settings' && settingsFromRef.current === 'game' && (
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+            <SettingsScreen
+              initialSettings={settings}
+              onSave={handleSaveSettings}
+              onBack={handleSettingsBack}
             />
           </View>
         )}
@@ -72,6 +118,19 @@ function AppContent() {
       <View style={styles.container}>
         <LeaderboardScreen
           onBack={() => setScreen('home')}
+        />
+        <StatusBar style="auto" />
+      </View>
+    );
+  }
+
+  if (screen === 'settings') {
+    return (
+      <View style={styles.container}>
+        <SettingsScreen
+          initialSettings={settings}
+          onSave={handleSaveSettings}
+          onBack={handleSettingsBack}
         />
         <StatusBar style="auto" />
       </View>
@@ -122,6 +181,16 @@ function AppContent() {
 
         <TouchableOpacity style={styles.leaderboardButton} onPress={() => goToLeaderboard('home')}>
           <Text style={styles.leaderboardButtonText}>🏅 리더보드</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => goToSettings('home')}
+          disabled={!settingsLoaded}
+        >
+          <Text style={styles.settingsButtonText}>
+            {settingsLoaded ? '⚙️ Settings' : 'Loading settings...'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -202,6 +271,20 @@ const styles = StyleSheet.create({
   },
   leaderboardButtonText: {
     color: '#92650A',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  settingsButton: {
+    marginTop: 10,
+    backgroundColor: '#E9F5FF',
+    borderWidth: 1.5,
+    borderColor: '#457B9D',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  settingsButtonText: {
+    color: '#1D4E89',
     fontSize: 16,
     fontWeight: 'bold',
   },
