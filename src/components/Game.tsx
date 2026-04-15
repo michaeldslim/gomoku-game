@@ -62,6 +62,7 @@ const Game: React.FC<GameProps> = ({
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
   const [winningCells, setWinningCells] = useState<{ row: number; col: number }[] | null>(null);
   const [boardSize, setBoardSize] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
+  const [boardCenterTrigger, setBoardCenterTrigger] = useState(0);
   const aiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const boardRef = useRef<number[][]>(initializeBoard());
   const currentPlayerRef = useRef<number>(1);
@@ -340,6 +341,7 @@ const Game: React.FC<GameProps> = ({
     setBoardHistory([]);
     setUndoCount(3);
     undosUsedThisGameRef.current = 0;
+    setBoardCenterTrigger(prev => prev + 1);
     const nextTurnIsHuman = !vsAI || nextStartingPlayer === HUMAN_PLAYER;
     if (nextTurnIsHuman) {
       setTimeLeft(TIMER_DURATION);
@@ -658,6 +660,7 @@ const Game: React.FC<GameProps> = ({
           onCellPress={handleCellPress} 
           lastMove={lastMove}
           winningCells={winningCells}
+          centerTrigger={boardCenterTrigger}
         />
         <Fireworks visible={showFireworks} width={boardSize.width} height={boardSize.height} />
         {aiThinking && vsAI && (

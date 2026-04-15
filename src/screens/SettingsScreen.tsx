@@ -100,7 +100,11 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom + 24, 24) }]}
+        showsVerticalScrollIndicator
+      >
         <View style={styles.card}>
           <Text style={styles.label}>Nickname</Text>
           <TextInput
@@ -184,6 +188,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F3EFE7',
+  },
+  scroll: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',

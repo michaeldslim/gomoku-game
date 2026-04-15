@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform, ScrollView, useWindowDimensions } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { LayoutChangeEvent, View, StyleSheet, TouchableOpacity, Platform, ScrollView, useWindowDimensions } from 'react-native';
 import Stone from './Stone';
 import { BOARD_SIZE } from '../utils/gameLogic';
 
@@ -8,14 +8,20 @@ interface BoardProps {
   onCellPress: (row: number, col: number) => void;
   lastMove?: { row: number; col: number } | null;
   winningCells?: { row: number; col: number }[] | null;
+  centerTrigger?: number;
 }
 
 const CELL_SIZE = 30;
 const BOARD_PADDING = 15;
 const STONE_SIZE = 24; // Match the stone size
 
-const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCells }) => {
+const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCells, centerTrigger = 0 }) => {
   const { height: screenHeight } = useWindowDimensions();
+  const horizontalScrollRef = useRef<ScrollView | null>(null);
+  const verticalScrollRef = useRef<ScrollView | null>(null);
+  const hasAutoCenteredRef = useRef(false);
+  const [horizontalViewportWidth, setHorizontalViewportWidth] = useState(0);
+  const [verticalViewportHeight, setVerticalViewportHeight] = useState(0);
   // Reserve space for UI above the board (status bar, controls, etc.)
   const maxBoardVisibleHeight = screenHeight * 0.55;
   const webNoOutlineStyle = Platform.OS === 'web'
@@ -25,6 +31,40 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
   const boardPixelSize = CELL_SIZE * (boardSize - 1) + BOARD_PADDING * 2;
   const centerLineIndex = Math.floor(boardSize / 2);
   const boardCenterOffset = centerLineIndex * CELL_SIZE;
+
+  const centerBoard = useCallback(
+    (animated: boolean) => {
+      if (!horizontalViewportWidth || !verticalViewportHeight) return;
+
+      const targetX = Math.max(0, (boardPixelSize - horizontalViewportWidth) / 2);
+      const targetY = Math.max(0, (boardPixelSize - verticalViewportHeight) / 2);
+
+      horizontalScrollRef.current?.scrollTo({ x: targetX, y: 0, animated });
+      verticalScrollRef.current?.scrollTo({ x: 0, y: targetY, animated });
+    },
+    [boardPixelSize, horizontalViewportWidth, verticalViewportHeight]
+  );
+
+  useEffect(() => {
+    if (hasAutoCenteredRef.current) return;
+    if (!horizontalViewportWidth || !verticalViewportHeight) return;
+
+    hasAutoCenteredRef.current = true;
+    centerBoard(false);
+  }, [centerBoard, horizontalViewportWidth, verticalViewportHeight]);
+
+  useEffect(() => {
+    if (!horizontalViewportWidth || !verticalViewportHeight) return;
+    centerBoard(true);
+  }, [centerTrigger, centerBoard, horizontalViewportWidth, verticalViewportHeight]);
+
+  const handleHorizontalLayout = (event: LayoutChangeEvent) => {
+    setHorizontalViewportWidth(event.nativeEvent.layout.width);
+  };
+
+  const handleVerticalLayout = (event: LayoutChangeEvent) => {
+    setVerticalViewportHeight(event.nativeEvent.layout.height);
+  };
 
   // Build a Set for O(1) winning-cell lookup
   const winningSet = winningCells
@@ -89,16 +129,20 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
   return (
     <View style={styles.container}>
       <ScrollView
+        ref={horizontalScrollRef}
         style={[styles.horizontalScroll, { maxHeight: maxBoardVisibleHeight }]}
         contentContainerStyle={styles.scrollContentCenter}
         horizontal
         showsHorizontalScrollIndicator
+        onLayout={handleHorizontalLayout}
       >
         <ScrollView
+          ref={verticalScrollRef}
           style={{ maxHeight: maxBoardVisibleHeight }}
           contentContainerStyle={styles.scrollContentCenter}
           showsVerticalScrollIndicator
           nestedScrollEnabled
+          onLayout={handleVerticalLayout}
         >
           <View style={[styles.board, { width: boardPixelSize, height: boardPixelSize }]}>
             {renderGridLines()}
