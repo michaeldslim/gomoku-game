@@ -89,6 +89,7 @@ function AppContent() {
           onStartFreshRun={handleStartFreshRun}
           onLeaderboard={() => goToLeaderboard('game')}
           onSettings={() => goToSettings('game')}
+          timerEnabled={settings.timerEnabled}
           intermediateTopPoolSize={settings.intermediateTopPoolSize}
           expertTopPool={settings.expertTopPool}
         />

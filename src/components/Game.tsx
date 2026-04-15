@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, Animated, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Audio } from 'expo-av';
 import Board from './Board';
 import GameStatus from './GameStatus';
@@ -14,7 +14,7 @@ import {
 } from '../utils/gameLogic';
 import { findBestMove, AIDifficulty } from '../utils/aiLogic';
 
-const TIMER_DURATION = 10; // 10 seconds per turn
+const TIMER_DURATION = 15; // 15 seconds per turn
 const EXPERT_THRESHOLD = 80;
 
 interface GameProps {
@@ -23,6 +23,7 @@ interface GameProps {
   onStartFreshRun?: (currentScore: number) => Promise<void> | void;
   onLeaderboard?: () => void;
   onSettings?: () => void;
+  timerEnabled?: boolean;
   intermediateTopPoolSize?: number;
   expertTopPool?: number;
 }
@@ -33,6 +34,7 @@ const Game: React.FC<GameProps> = ({
   onStartFreshRun,
   onLeaderboard,
   onSettings,
+  timerEnabled = false,
   intermediateTopPoolSize = 4,
   expertTopPool = 3,
 }) => {
@@ -44,7 +46,6 @@ const Game: React.FC<GameProps> = ({
   const [aiThinking, setAiThinking] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(TIMER_DURATION);
   const [timerActive, setTimerActive] = useState<boolean>(true);
-  const [timerEnabled, setTimerEnabled] = useState<boolean>(false); // Timer disabled by default
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>(
     initialScore >= EXPERT_THRESHOLD ? 'expert' : 'intermediate'
   );
@@ -61,8 +62,6 @@ const Game: React.FC<GameProps> = ({
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
   const [winningCells, setWinningCells] = useState<{ row: number; col: number }[] | null>(null);
   const [boardSize, setBoardSize] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
-  const [isResettingRun, setIsResettingRun] = useState<boolean>(false);
-  const timerAnimation = useRef(new Animated.Value(1)).current;
   const aiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const boardRef = useRef<number[][]>(initializeBoard());
   const currentPlayerRef = useRef<number>(1);
@@ -341,6 +340,11 @@ const Game: React.FC<GameProps> = ({
     setBoardHistory([]);
     setUndoCount(3);
     undosUsedThisGameRef.current = 0;
+    const nextTurnIsHuman = !vsAI || nextStartingPlayer === HUMAN_PLAYER;
+    if (nextTurnIsHuman) {
+      setTimeLeft(TIMER_DURATION);
+    }
+    setTimerActive(timerEnabled && nextTurnIsHuman);
     // AI turn will auto-trigger via currentPlayer useEffect when nextStartingPlayer is AI.
   };
 
@@ -363,14 +367,6 @@ const Game: React.FC<GameProps> = ({
     handleRestart({ forceHumanStart: true });
   };
  
-  // Toggle timer on/off
-  const toggleTimer = () => {
-    setTimerEnabled(!timerEnabled);
-    // Reset timer when toggling
-    setTimeLeft(TIMER_DURATION);
-    timerAnimation.setValue(1);
-  };
-
   const scrollControlsToStart = () => {
     controlsScrollRef.current?.scrollTo({ x: 0, animated: true });
   };
@@ -379,44 +375,6 @@ const Game: React.FC<GameProps> = ({
     controlsScrollRef.current?.scrollToEnd({ animated: true });
   };
 
-  const performStartFreshRun = () => {
-    if (isResettingRun) return;
-
-    void (async () => {
-      try {
-        setIsResettingRun(true);
-        if (onStartFreshRun) {
-          await onStartFreshRun(totalScore);
-        }
-
-        setShowFireworks(false);
-        setTotalScore(0);
-        prevTotalScoreRef.current = 0;
-        setAiDifficulty('intermediate');
-        handleRestart({ forceHumanStart: true });
-      } finally {
-        setIsResettingRun(false);
-      }
-    })();
-  };
-
-  const handleStartFreshRun = () => {
-    if (isResettingRun) return;
-
-    Alert.alert(
-      'Start a new game run?',
-      'This resets your current score to 0 and starts a new run. Your previous score will be saved to the leaderboard.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: performStartFreshRun,
-        },
-      ]
-    );
-  };
-  
   // Handle time up - player loses their turn or makes a random move
   const handleTimeUp = () => {
     // Read from refs so this always operates on the latest board/player,
@@ -424,9 +382,8 @@ const Game: React.FC<GameProps> = ({
     const currentBoard = boardRef.current;
     const player = currentPlayerRef.current;
 
-    // If it's AI's turn and time is up, make a move anyway
+    // Timer is human-only in vsAI mode.
     if (vsAI && player === AI_PLAYER) {
-      makeAIMove(currentBoard);
       return;
     }
     
@@ -472,7 +429,6 @@ const Game: React.FC<GameProps> = ({
           return prevTime - 1;
         });
       }, 1000);
-      // Animation is started by the turn-reset effect to avoid double-firing
     }
     
     return () => {
@@ -493,19 +449,9 @@ const Game: React.FC<GameProps> = ({
   useEffect(() => {
     // Reset timer for new turn
     setTimeLeft(TIMER_DURATION);
-    timerAnimation.setValue(1);
     
-    // Start timer if timer is enabled, it's not AI's turn, and game is not over
+    // Start timer if enabled, game is active, and this is a human turn.
     setTimerActive(timerEnabled && !(vsAI && currentPlayer === AI_PLAYER) && winner === null);
-    
-    // Start animation if timer is enabled
-    if (timerEnabled && winner === null) {
-      Animated.timing(timerAnimation, {
-        toValue: 0,
-        duration: TIMER_DURATION * 1000,
-        useNativeDriver: false,
-      }).start();
-    }
   }, [currentPlayer, winner, timerEnabled]);
 
   // Trigger fireworks on each human win
@@ -550,15 +496,18 @@ const Game: React.FC<GameProps> = ({
     prevTotalScoreRef.current = totalScore;
   }, [totalScore]);
 
-  // Calculate timer color based on time left
-  const timerColor = timerAnimation.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: ['#ff0000', '#ffff00', '#00ff00']
-  });
-
   const MASTER_THRESHOLD = 100;
   const isMaster = totalScore >= MASTER_THRESHOLD;
   const isExpert = totalScore >= EXPERT_THRESHOLD;
+  const isAITurnForTimer = vsAI && currentPlayer === AI_PLAYER;
+  const showMoodTimer = winner === null && timerEnabled;
+  const timerMood = timeLeft > 10
+    ? { emoji: '🙂', bg: '#DCFCE7', text: '#166534' }
+    : timeLeft > 6
+    ? { emoji: '😐', bg: '#FEF9C3', text: '#854D0E' }
+    : timeLeft > 3
+    ? { emoji: '😰', bg: '#FFEDD5', text: '#9A3412' }
+    : { emoji: '😭', bg: '#FEE2E2', text: '#991B1B' };
   // Segment widths: segment1 is 80% of bar, segment2 is 20%
   const seg1Fill = Math.min(1, totalScore / EXPERT_THRESHOLD);
   const seg2Fill = isExpert ? Math.min(1, (totalScore - EXPERT_THRESHOLD) / (MASTER_THRESHOLD - EXPERT_THRESHOLD)) : 0;
@@ -576,80 +525,76 @@ const Game: React.FC<GameProps> = ({
 
       {/* Score banner */}
       <View style={styles.scoreBanner}>
-        {/* Header row: label + score + badges */}
-        <View style={styles.scoreRow}>
-          <Text style={styles.scoreLabel}>점수</Text>
-          <Text style={[styles.scoreValue, isMaster && { color: '#D97706' }, isExpert && !isMaster && { color: '#E63946' }]}>
-            {totalScore}
-          </Text>
-          <Text style={styles.scoreThreshold}> / {isMaster ? MASTER_THRESHOLD : EXPERT_THRESHOLD}</Text>
-          {isMaster ? (
-            <View style={[styles.expertBadge, { backgroundColor: '#D97706' }]}>
-              <Text style={styles.expertBadgeText}>🏆 마스터</Text>
+        <View style={styles.scoreBannerContent}>
+          <View style={[styles.scoreInfoBlock, showMoodTimer && styles.scoreInfoBlockNarrow]}>
+            {/* Header row: label + score + badges */}
+            <View style={styles.scoreRow}>
+              <View style={styles.scoreMain}>
+                <Text style={styles.scoreLabel}>점수</Text>
+                <Text style={[styles.scoreValue, isMaster && { color: '#D97706' }, isExpert && !isMaster && { color: '#E63946' }]}>
+                  {totalScore}
+                </Text>
+                <Text style={styles.scoreThreshold}> / {isMaster ? MASTER_THRESHOLD : EXPERT_THRESHOLD}</Text>
+                {isMaster ? (
+                  <View style={[styles.expertBadge, { backgroundColor: '#D97706' }]}>
+                    <Text style={styles.expertBadgeText}>🏆 마스터</Text>
+                  </View>
+                ) : isExpert ? (
+                  <View style={styles.expertBadge}>
+                    <Text style={styles.expertBadgeText}>고급 자동 전환</Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
-          ) : isExpert ? (
-            <View style={styles.expertBadge}>
-              <Text style={styles.expertBadgeText}>고급 자동 전환</Text>
-            </View>
-          ) : null}
-          <TouchableOpacity
-            onPress={handleStartFreshRun}
-            style={[styles.exitButton, isResettingRun && styles.resetButtonDisabled]}
-            disabled={isResettingRun}
-          >
-            <Text style={styles.exitButtonText}>{isResettingRun ? '...' : 'Reset game'}</Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* Two-segment bar */}
-        <View style={styles.scoreBarOuter}>
-          {/* Segment 1: 0 → 80 (80% width of total bar) */}
-          <View style={[styles.scoreBarSegment, { flex: 80 }]}>
-            <View style={styles.scoreBarTrack}>
-              <View style={[styles.scoreBarFill, { width: `${seg1Fill * 100}%`, backgroundColor: '#457B9D' }]} />
+            {/* Two-segment bar */}
+            <View style={styles.scoreBarOuter}>
+              {/* Segment 1: 0 → 80 (80% width of total bar) */}
+              <View style={[styles.scoreBarSegment, { flex: 80 }]}>
+                <View style={styles.scoreBarTrack}>
+                  <View style={[styles.scoreBarFill, { width: `${seg1Fill * 100}%`, backgroundColor: '#457B9D' }]} />
+                </View>
+              </View>
+
+              {/* Milestone divider at 80 */}
+              <View style={styles.scoreMilestoneDivider} />
+
+              {/* Segment 2: 80 → 100 (20% width of total bar) */}
+              <View style={[styles.scoreBarSegment, { flex: 20 }]}>
+                <View style={[styles.scoreBarTrack, { backgroundColor: isExpert ? '#FECACA' : '#E5E7EB' }]}>
+                  <View style={[styles.scoreBarFill, { width: `${seg2Fill * 100}%`, backgroundColor: '#E63946' }]} />
+                </View>
+              </View>
+            </View>
+
+            {/* Milestone labels */}
+            <View style={styles.scoreLabelRow}>
+              <Text style={styles.scoreMilestoneLabel}>0</Text>
+              <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', left: '78%' }]}>80</Text>
+              <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', right: 0 }]}>100</Text>
             </View>
           </View>
-
-          {/* Milestone divider at 80 */}
-          <View style={styles.scoreMilestoneDivider} />
-
-          {/* Segment 2: 80 → 100 (20% width of total bar) */}
-          <View style={[styles.scoreBarSegment, { flex: 20 }]}>
-            <View style={[styles.scoreBarTrack, { backgroundColor: isExpert ? '#FECACA' : '#E5E7EB' }]}>
-              <View style={[styles.scoreBarFill, { width: `${seg2Fill * 100}%`, backgroundColor: '#E63946' }]} />
+          {showMoodTimer && (
+            <View
+              style={[
+                styles.moodTimerBox,
+                { backgroundColor: isAITurnForTimer ? '#DBEAFE' : timerMood.bg },
+              ]}
+            >
+              <Text style={styles.moodEmoji}>{isAITurnForTimer ? '🦊' : timerMood.emoji}</Text>
+              <Text
+                style={[
+                  styles.moodTimeText,
+                  { color: isAITurnForTimer ? '#1E40AF' : timerMood.text },
+                ]}
+              >
+                {isAITurnForTimer ? 'AI' : `${timeLeft}s`}
+              </Text>
             </View>
-          </View>
-        </View>
-
-        {/* Milestone labels */}
-        <View style={styles.scoreLabelRow}>
-          <Text style={styles.scoreMilestoneLabel}>0</Text>
-          <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', left: '78%' }]}>80</Text>
-          <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', right: 0 }]}>100</Text>
+          )}
         </View>
       </View>
 
-      {/* Timer display */}
-      {winner === null && timerEnabled && (
-        <View style={styles.timerContainer}>
-          <Text style={styles.timerLabel}>
-            {currentPlayer === 1 ? '흑돌' : '백돌'} 시간:
-          </Text>
-          <View style={styles.timerBarContainer}>
-            <Animated.View 
-              style={[styles.timerBar, { 
-                width: timerAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '100%']
-                }),
-                backgroundColor: timerColor
-              }]} 
-            />
-          </View>
-          <Text style={styles.timerText}>{timeLeft}초</Text>
-        </View>
-      )}
-      
       <View style={styles.switchesContainer}>
         <View style={styles.controlsWrapper}>
           <TouchableOpacity style={styles.arrowButton} onPress={scrollControlsToStart}>
@@ -680,20 +625,6 @@ const Game: React.FC<GameProps> = ({
                   }}
                 >
                   <Text style={[styles.chipText, !vsAI && styles.chipTextActive]}>2P</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.inlineGroup}>
-              <Text style={styles.controlLabel}>타이머</Text>
-              <View style={styles.chipGroup}>
-                <TouchableOpacity
-                  style={[styles.chip, timerEnabled && styles.chipActive]}
-                  onPress={toggleTimer}
-                >
-                  <Text style={[styles.chipText, timerEnabled && styles.chipTextActive]}>
-                    {timerEnabled ? 'ON' : 'OFF'}
-                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -760,10 +691,28 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 10,
   },
+  scoreBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  scoreInfoBlock: {
+    flex: 1,
+  },
+  scoreInfoBlockNarrow: {
+    width: '85%',
+  },
   scoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 6,
+  },
+  scoreMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
   },
   scoreLabel: {
     fontSize: 13,
@@ -827,20 +776,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  exitButton: {
-    marginLeft: 'auto',
-    backgroundColor: '#6C757D',
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+  moodTimerBox: {
+    width: '15%',
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56,
   },
-  exitButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+  moodEmoji: {
+    fontSize: 20,
   },
-  resetButtonDisabled: {
-    opacity: 0.6,
+  moodTimeText: {
+    fontSize: 13,
+    fontWeight: '800',
   },
   boardWrapper: {
     position: 'relative',
@@ -863,39 +814,6 @@ const styles = StyleSheet.create({
     color: '#457B9D',
     fontWeight: '600',
   },
-  timerContainer: {
-    alignSelf: 'stretch',
-    marginHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginVertical: 10,
-    padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 10,
-  },
-  timerLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    width: 80,
-  },
-  timerBarContainer: {
-    flex: 1,
-    height: 10,
-    backgroundColor: '#ddd',
-    borderRadius: 5,
-    marginHorizontal: 10,
-    overflow: 'hidden',
-  },
-  timerBar: {
-    height: '100%',
-  },
-  timerText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    width: 40,
-    textAlign: 'right',
-  },
   switchesContainer: {
     alignSelf: 'stretch',
     marginHorizontal: 16,
@@ -912,7 +830,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   controlBar: {
+    flexGrow: 1,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 12,
   },
   arrowButton: {

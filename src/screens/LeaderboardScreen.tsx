@@ -143,7 +143,7 @@ export default function LeaderboardScreen({ onBack }: Props) {
         >
           {userHandle.length > 0 && (
             <View style={styles.handleCard}>
-              <Text style={styles.handleLabel}>User Handle</Text>
+              <Text style={styles.handleLabel}>Nickname</Text>
               <Text style={styles.handleValue}>{userHandle}</Text>
             </View>
           )}

@@ -49,12 +49,14 @@ const sanitizeExpertTopPool = (value: number): number => {
 export default function SettingsScreen({ initialSettings, onBack, onSave }: Props) {
   const insets = useSafeAreaInsets();
   const [userHandle, setUserHandle] = useState(initialSettings.userHandle);
+  const [timerEnabled, setTimerEnabled] = useState(initialSettings.timerEnabled);
   const [intermediateTopPoolSize, setIntermediateTopPoolSize] = useState(initialSettings.intermediateTopPoolSize);
   const [expertTopPool, setExpertTopPool] = useState(initialSettings.expertTopPool);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setUserHandle(initialSettings.userHandle);
+    setTimerEnabled(initialSettings.timerEnabled);
     setIntermediateTopPoolSize(initialSettings.intermediateTopPoolSize);
     setExpertTopPool(initialSettings.expertTopPool);
   }, [initialSettings]);
@@ -62,10 +64,11 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
   const hasChanges = useMemo(() => {
     return (
       userHandle.trim() !== initialSettings.userHandle ||
+      timerEnabled !== initialSettings.timerEnabled ||
       intermediateTopPoolSize !== initialSettings.intermediateTopPoolSize ||
       expertTopPool !== initialSettings.expertTopPool
     );
-  }, [userHandle, intermediateTopPoolSize, expertTopPool, initialSettings]);
+  }, [userHandle, timerEnabled, intermediateTopPoolSize, expertTopPool, initialSettings]);
 
   const handleSave = async () => {
     if (saving) return;
@@ -74,6 +77,7 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
     try {
       const next: UserSettings = {
         userHandle: userHandle.trim().slice(0, 24),
+        timerEnabled,
         intermediateTopPoolSize: sanitizeIntermediateTopPoolSize(intermediateTopPoolSize),
         expertTopPool: sanitizeExpertTopPool(expertTopPool),
       };
@@ -98,17 +102,36 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator>
         <View style={styles.card}>
-          <Text style={styles.label}>User Handle</Text>
+          <Text style={styles.label}>Nickname</Text>
           <TextInput
             style={styles.input}
             value={userHandle}
             onChangeText={setUserHandle}
-            placeholder="Your handle"
+            placeholder="Your nickname"
             maxLength={24}
             autoCapitalize="none"
             autoCorrect={false}
           />
           <Text style={styles.hint}>Used for future profile/leaderboard labeling.</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>Timer</Text>
+          <Text style={styles.hint}>Enable 15-second turn timer for human turns.</Text>
+          <View style={styles.chipRow}>
+            <TouchableOpacity
+              style={[styles.chip, timerEnabled && styles.chipActive]}
+              onPress={() => setTimerEnabled(true)}
+            >
+              <Text style={[styles.chipText, timerEnabled && styles.chipTextActive]}>ON</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.chip, !timerEnabled && styles.chipActive]}
+              onPress={() => setTimerEnabled(false)}
+            >
+              <Text style={[styles.chipText, !timerEnabled && styles.chipTextActive]}>OFF</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.card}>
