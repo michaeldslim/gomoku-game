@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -52,8 +51,6 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
   const [timerEnabled, setTimerEnabled] = useState(initialSettings.timerEnabled);
   const [intermediateTopPoolSize, setIntermediateTopPoolSize] = useState(initialSettings.intermediateTopPoolSize);
   const [expertTopPool, setExpertTopPool] = useState(initialSettings.expertTopPool);
-  const [saving, setSaving] = useState(false);
-
   useEffect(() => {
     setUserHandle(initialSettings.userHandle);
     setTimerEnabled(initialSettings.timerEnabled);
@@ -61,32 +58,26 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
     setExpertTopPool(initialSettings.expertTopPool);
   }, [initialSettings]);
 
-  const hasChanges = useMemo(() => {
-    return (
-      userHandle.trim() !== initialSettings.userHandle ||
-      timerEnabled !== initialSettings.timerEnabled ||
-      intermediateTopPoolSize !== initialSettings.intermediateTopPoolSize ||
-      expertTopPool !== initialSettings.expertTopPool
-    );
-  }, [userHandle, timerEnabled, intermediateTopPoolSize, expertTopPool, initialSettings]);
+  const nicknameChanged = userHandle.trim() !== initialSettings.userHandle;
 
-  const handleSave = async () => {
-    if (saving) return;
-
-    setSaving(true);
+  const autoSave = async (patch: Partial<UserSettings>) => {
     try {
       const next: UserSettings = {
         userHandle: userHandle.trim().slice(0, 24),
         timerEnabled,
         intermediateTopPoolSize: sanitizeIntermediateTopPoolSize(intermediateTopPoolSize),
         expertTopPool: sanitizeExpertTopPool(expertTopPool),
+        ...patch,
       };
       await onSave(next);
-      onBack();
     } catch {
       Alert.alert('Error', 'Failed to save settings. Please try again.');
-    } finally {
-      setSaving(false);
+    }
+  };
+
+  const handleSaveNickname = async () => {
+    if (nicknameChanged) {
+      await autoSave({ userHandle: userHandle.trim().slice(0, 24) });
     }
   };
 
@@ -111,6 +102,8 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
             style={styles.input}
             value={userHandle}
             onChangeText={setUserHandle}
+            onBlur={handleSaveNickname}
+            onSubmitEditing={handleSaveNickname}
             placeholder="Your nickname"
             maxLength={24}
             autoCapitalize="none"
@@ -125,13 +118,13 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
           <View style={styles.chipRow}>
             <TouchableOpacity
               style={[styles.chip, timerEnabled && styles.chipActive]}
-              onPress={() => setTimerEnabled(true)}
+              onPress={() => { setTimerEnabled(true); autoSave({ timerEnabled: true }); }}
             >
               <Text style={[styles.chipText, timerEnabled && styles.chipTextActive]}>ON</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.chip, !timerEnabled && styles.chipActive]}
-              onPress={() => setTimerEnabled(false)}
+              onPress={() => { setTimerEnabled(false); autoSave({ timerEnabled: false }); }}
             >
               <Text style={[styles.chipText, !timerEnabled && styles.chipTextActive]}>OFF</Text>
             </TouchableOpacity>
@@ -146,7 +139,7 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
               <TouchableOpacity
                 key={value}
                 style={[styles.chip, intermediateTopPoolSize === value && styles.chipActive]}
-                onPress={() => setIntermediateTopPoolSize(value)}
+                onPress={() => { setIntermediateTopPoolSize(value); autoSave({ intermediateTopPoolSize: sanitizeIntermediateTopPoolSize(value) }); }}
               >
                 <Text style={[styles.chipText, intermediateTopPoolSize === value && styles.chipTextActive]}>{value}</Text>
               </TouchableOpacity>
@@ -162,7 +155,7 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
               <TouchableOpacity
                 key={option.value}
                 style={[styles.chip, expertTopPool === option.value && styles.chipActiveExpert]}
-                onPress={() => setExpertTopPool(option.value)}
+                onPress={() => { setExpertTopPool(option.value); autoSave({ expertTopPool: sanitizeExpertTopPool(option.value) }); }}
               >
                 <Text style={[styles.chipText, expertTopPool === option.value && styles.chipTextActive]}>
                   {option.label}
@@ -171,14 +164,6 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
             ))}
           </View>
         </View>
-
-        <TouchableOpacity
-          style={[styles.saveButton, (!hasChanges || saving) && styles.buttonDisabled]}
-          onPress={handleSave}
-          disabled={!hasChanges || saving}
-        >
-          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Save Settings</Text>}
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );
