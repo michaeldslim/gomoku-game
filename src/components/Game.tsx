@@ -714,7 +714,6 @@ const styles = StyleSheet.create({
   scoreMain: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
     gap: 4,
   },
   scoreLabel: {
