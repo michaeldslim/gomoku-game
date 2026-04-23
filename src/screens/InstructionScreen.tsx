@@ -117,10 +117,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3EFE7',
   },
   sectionContainer: {
+    alignSelf: 'stretch',
     width: '100%',
     backgroundColor: '#F3EFE7',
     marginBottom: 14,
     borderRadius: 12,
+    paddingHorizontal: 0,
+    marginHorizontal: 0,
   },
   sectionHeader: {
     paddingHorizontal: 16,
@@ -159,8 +162,11 @@ const styles = StyleSheet.create({
     width: 36,
   },
   content: {
-    padding: 16,
-    gap: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 0,
+    gap: 10,
+    width: '100%',
+    alignSelf: 'stretch',
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -203,6 +209,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   instructionsCard: {
+    width: '100%',
+    alignSelf: 'stretch',
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,

@@ -252,6 +252,7 @@ const styles = StyleSheet.create({
   startContainerContent: {
     padding: 16,
     justifyContent: 'center',
+    alignItems: 'stretch',
   },
   sectionTitle: {
     fontSize: 20,
@@ -272,6 +273,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   startButtonText: {
     color: '#ffffff',
@@ -286,6 +289,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   leaderboardButtonText: {
     color: '#92650A',
@@ -300,6 +305,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   settingsButtonText: {
     color: '#1D4E89',
