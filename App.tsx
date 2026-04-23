@@ -10,15 +10,47 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Game from './src/components/Game';
+import InstructionScreen from './src/screens/InstructionScreen';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { addLeaderboardEntry, fetchStartupScore, startFreshRun } from './src/services/leaderboard';
 import { defaultUserSettings, fetchUserSettings, saveUserSettings, UserSettings } from './src/services/settings';
 
+type Language = 'ko' | 'en';
 type Screen = 'home' | 'game' | 'leaderboard' | 'settings';
+
+const labelsByLanguage: Record<Language, {
+  title: string;
+  startGame: string;
+  leaderboard: string;
+  settings: string;
+  instructionButton: string;
+  instructionSummary: string;
+  loadingSettings: string;
+}> = {
+  ko: {
+    title: '오목 (Gomoku)',
+    startGame: '게임 시작',
+    leaderboard: '🏅 리더보드',
+    settings: '⚙️ 설정',
+    instructionButton: '설명',
+    instructionSummary: '설명 페이지로 이동하여 게임 방법을 확인하세요.',
+    loadingSettings: '설정 로딩 중...',
+  },
+  en: {
+    title: 'Gomoku',
+    startGame: 'Start Game',
+    leaderboard: '🏅 Leaderboard',
+    settings: '⚙️ Settings',
+    instructionButton: 'Instructions',
+    instructionSummary: 'Open the instructions page and toggle language for rules.',
+    loadingSettings: 'Loading settings...',
+  },
+};
 
 function AppContent() {
   const [screen, setScreen] = useState<Screen>('home');
+  const [language, setLanguage] = useState<Language>('ko');
   const [startupScore, setStartupScore] = useState(0);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [settings, setSettings] = useState<UserSettings>(defaultUserSettings());
@@ -139,10 +171,11 @@ function AppContent() {
   }
 
   // Home screen
+  const labels = labelsByLanguage[language];
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>오목 (Gomoku)</Text>
+        <Text style={styles.title}>{labels.title}</Text>
       </View>
 
       <ScrollView
@@ -150,23 +183,7 @@ function AppContent() {
         contentContainerStyle={styles.startContainerContent}
         showsVerticalScrollIndicator
       >
-        <Text style={styles.sectionTitle}>게임 방법</Text>
-        <Text style={styles.instructions}>
-          1. 흑돌이 먼저 시작합니다.{"\n"}
-          2. 번갈아 빈 칸에 돌을 놓습니다.{"\n"}
-          3. 가로, 세로, 대각선 중 한 방향으로 먼저 5개를 연결하면 승리합니다.{"\n"}
-          4. 보드가 다 찼는데 승자가 없으면 무승부입니다.{"\n"}
-          5. 플레이 보드는 가로·세로 방향으로 스크롤할 수 있습니다.
-        </Text>
-
-        <Text style={styles.sectionTitle}>How to Play</Text>
-        <Text style={styles.instructions}>
-          1. Black always goes first.{"\n"}
-          2. Players take turns placing stones on empty intersections.{"\n"}
-          3. Connect 5 stones in a row horizontally, vertically, or diagonally to win.{"\n"}
-          4. If the board is full with no winner, the game ends in a draw.{"\n"}
-          5. The play board can be scrolled horizontally and vertically.
-        </Text>
+        <InstructionScreen language={language} onLanguageChange={setLanguage} standalone={false} />
 
         <TouchableOpacity
           style={styles.startButton}
@@ -176,12 +193,12 @@ function AppContent() {
           {isStartingGame ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
-            <Text style={styles.startButtonText}>Start Game</Text>
+            <Text style={styles.startButtonText}>{labels.startGame}</Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.leaderboardButton} onPress={() => goToLeaderboard('home')}>
-          <Text style={styles.leaderboardButtonText}>🏅 리더보드</Text>
+          <Text style={styles.leaderboardButtonText}>{labels.leaderboard}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -190,7 +207,7 @@ function AppContent() {
           disabled={!settingsLoaded}
         >
           <Text style={styles.settingsButtonText}>
-            {settingsLoaded ? '⚙️ Settings' : 'Loading settings...'}
+            {settingsLoaded ? labels.settings : labels.loadingSettings}
           </Text>
         </TouchableOpacity>
       </ScrollView>
