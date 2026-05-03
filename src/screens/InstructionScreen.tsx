@@ -46,7 +46,7 @@ export default function InstructionScreen({ language, onLanguageChange, onClose,
   return (
     <View style={isStandalone ? styles.container : styles.sectionContainer}>
       {isStandalone ? (
-        <View style={[styles.header, { paddingTop: insets.top + 14 }]}> 
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}> 
           <TouchableOpacity onPress={onClose} style={styles.backButton}>
             <Text style={styles.backText}>{language === 'ko' ? '뒤로' : 'Back'}</Text>
           </TouchableOpacity>
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     width: 36,
   },
   content: {
-    paddingVertical: 10,
+    paddingVertical: 6,
     paddingHorizontal: 0,
     gap: 10,
     width: '100%',
@@ -173,8 +173,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 10,
+    paddingTop: 10,
+    paddingBottom: 8,
   },
   toggleGroupSmall: {
     flexDirection: 'row',

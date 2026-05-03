@@ -231,9 +231,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3EFE7',
   },
   header: {
-    paddingTop: 16,
+    paddingTop: 12,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 8,
     alignItems: 'center',
   },
   title: {
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   startContainerContent: {
-    padding: 16,
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'stretch',
   },
