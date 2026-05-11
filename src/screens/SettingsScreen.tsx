@@ -84,8 +84,8 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 14 }]}> 
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>뒤로</Text>
+        <TouchableOpacity onPress={onBack} style={[styles.toggleChip, styles.backButton]}>
+          <Text style={styles.toggleChipText}>뒤로</Text>
         </TouchableOpacity>
         <Text style={styles.title}>⚙️ Settings</Text>
         <View style={styles.headerSpacer} />
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#DDD8CE',
   },
   backButton: {
-    padding: 4,
+    marginRight: 6,
   },
   backText: {
     fontSize: 15,
@@ -265,6 +265,26 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: '#FFFFFF',
+  },
+  toggleChip: {
+    minWidth: 44,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleChipActive: {
+    backgroundColor: '#457B9D',
+    borderColor: '#457B9D',
+  },
+  toggleChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
   },
   saveButton: {
     marginTop: 8,
