@@ -115,16 +115,16 @@ export default function LeaderboardScreen({ onBack }: Props) {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 14 }]}> 
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>뒤로</Text>
+        <TouchableOpacity onPress={onBack} style={[styles.toggleChip, styles.backButton]}>
+          <Text style={styles.toggleChipText}>뒤로</Text>
         </TouchableOpacity>
         <Text style={styles.title}>🏅 리더보드</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={load} style={styles.refreshButton}>
-            <Text style={styles.refreshText}>Refresh</Text>
+          <TouchableOpacity onPress={load} style={[styles.toggleChip, styles.actionButton]}>
+            <Text style={[styles.toggleChipText, styles.refreshText]}>Refresh</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleResetLeaderboard} style={styles.resetButton}>
-            <Text style={styles.resetText}>Clear</Text>
+          <TouchableOpacity onPress={handleResetLeaderboard} style={[styles.toggleChip, styles.actionButton]}>
+            <Text style={[styles.toggleChipText, styles.resetText]}>Clear</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#DDD8CE',
   },
   backButton: {
-    padding: 4,
+    marginRight: 6,
   },
   backText: {
     fontSize: 15,
@@ -183,20 +183,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#212529',
   },
-  refreshButton: {
-    height: 24,
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
+  
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  resetButton: {
-    height: 24,
-    justifyContent: 'center',
-    paddingHorizontal: 4,
+  actionButton: {
+    paddingHorizontal: 8,
   },
   resetText: {
     fontSize: 12,
@@ -209,6 +203,30 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     fontWeight: '700',
     color: '#457B9D',
+  },
+
+  toggleChip: {
+    minWidth: 44,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleChipActive: {
+    backgroundColor: '#457B9D',
+    borderColor: '#457B9D',
+  },
+  toggleChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  toggleTextActive: {
+    color: '#ffffff',
   },
   loader: {
     marginTop: 60,
