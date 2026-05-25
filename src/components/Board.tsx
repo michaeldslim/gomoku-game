@@ -13,7 +13,6 @@ interface BoardProps {
 
 const CELL_SIZE = 30;
 const BOARD_PADDING = 15;
-const STONE_SIZE = 24; // Match the stone size
 
 const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCells, centerTrigger = 0 }) => {
   const { height: screenHeight } = useWindowDimensions();
