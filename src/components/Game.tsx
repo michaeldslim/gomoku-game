@@ -4,6 +4,7 @@ import { Audio } from 'expo-av';
 import Board from './Board';
 import GameStatus from './GameStatus';
 import Fireworks from './Fireworks';
+import VictoryPopup from './VictoryPopup';
 import { 
   BOARD_SIZE, 
   initializeBoard, 
@@ -26,6 +27,7 @@ interface GameProps {
   timerEnabled?: boolean;
   intermediateTopPoolSize?: number;
   expertTopPool?: number;
+  language?: 'ko' | 'en';
 }
 
 const Game: React.FC<GameProps> = ({
@@ -37,6 +39,7 @@ const Game: React.FC<GameProps> = ({
   timerEnabled = false,
   intermediateTopPoolSize = 4,
   expertTopPool = 3,
+  language = 'ko',
 }) => {
   const [board, setBoard] = useState<number[][]>(initializeBoard());
   const [currentPlayer, setCurrentPlayer] = useState<number>(1); // 1 for black, 2 for white
@@ -60,6 +63,7 @@ const Game: React.FC<GameProps> = ({
   const prevTotalScoreRef = useRef<number>(initialScore);
   const hasMountedScoreEffectRef = useRef<boolean>(false);
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
+  const [showVictoryPopup, setShowVictoryPopup] = useState<boolean>(false);
   const [winningCells, setWinningCells] = useState<{ row: number; col: number }[] | null>(null);
   const [boardSize, setBoardSize] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
   const [boardCenterTrigger, setBoardCenterTrigger] = useState(0);
@@ -462,7 +466,11 @@ const Game: React.FC<GameProps> = ({
     // If score just hit 100, the score-100 effect handles fireworks (4.5 s)
     if (totalScore >= 100) return;
     setShowFireworks(true);
-    const t = setTimeout(() => setShowFireworks(false), 3000);
+    setShowVictoryPopup(true);
+    const t = setTimeout(() => {
+      setShowFireworks(false);
+      setShowVictoryPopup(false);
+    }, 3000);
     return () => clearTimeout(t);
   }, [winner]);
 
@@ -663,6 +671,7 @@ const Game: React.FC<GameProps> = ({
           centerTrigger={boardCenterTrigger}
         />
         <Fireworks visible={showFireworks} width={boardSize.width} height={boardSize.height} />
+        <VictoryPopup visible={showVictoryPopup} text={language === 'ko' ? '승!' : 'Win!'} duration={3000} />
         {aiThinking && vsAI && (
           <View style={styles.aiThinkingOverlay} pointerEvents="none">
             <ActivityIndicator size="small" color="#457B9D" />

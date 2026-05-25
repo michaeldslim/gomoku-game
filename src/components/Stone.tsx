@@ -82,7 +82,7 @@ const Stone: React.FC<StoneProps> = ({ player, isHighlighted, isWinningStone }) 
   }, [isWinningStone, winGlow]);
 
   const ringColor = player === 1 ? '#000000' : '#FFFFFF';
-  const winColor = '#34D399';
+  const winColor = '#f88d3b';
 
   return (
     <View style={styles.container}>
@@ -192,16 +192,16 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 3,
-    borderColor: '#F59E0B',
+    borderColor: '#3B82F6',
   },
   winStone: {
     borderWidth: 2.5,
-    borderColor: '#F59E0B',
+    borderColor: '#3B82F6',
   },
   winStar: {
     position: 'absolute',
     fontSize: 7,
-    color: '#F59E0B',
+    color: '#3B82F6',
     top: 0,
     right: 0,
     zIndex: 20,
