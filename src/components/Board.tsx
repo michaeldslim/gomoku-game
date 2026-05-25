@@ -70,48 +70,52 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
     ? new Set(winningCells.map(c => `${c.row},${c.col}`))
     : null;
 
-  // Create grid lines
-  const renderGridLines = () => {
-    const lines = [];
-    
+  // Create grid lines (memoized)
+  const gridLines = React.useMemo(() => {
+    const lines: React.ReactNode[] = [];
+
     // Horizontal lines
     for (let i = 0; i < boardSize; i++) {
       lines.push(
-        <View 
-          key={`h-${i}`} 
-          style={[styles.line, styles.horizontalLine, { top: i * CELL_SIZE }]} 
+        <View
+          key={`h-${i}`}
+          style={[styles.line, styles.horizontalLine, { top: i * CELL_SIZE }]}
         />
       );
     }
-    
+
     // Vertical lines
     for (let i = 0; i < boardSize; i++) {
       lines.push(
-        <View 
-          key={`v-${i}`} 
-          style={[styles.line, styles.verticalLine, { left: i * CELL_SIZE }]} 
+        <View
+          key={`v-${i}`}
+          style={[styles.line, styles.verticalLine, { left: i * CELL_SIZE }]}
         />
       );
     }
-    
-    return lines;
-  };
 
-  // Create intersection points where stones can be placed
-  const renderIntersections = () => {
-    const points = [];
-    
+    return lines;
+  }, [boardSize]);
+
+  // Create intersection points where stones can be placed (memoized).
+  // Note: outermost border intersections are intentionally non-playable.
+  const intersections = React.useMemo(() => {
+    const points: React.ReactNode[] = [];
+
     for (let row = 0; row < boardSize; row++) {
       for (let col = 0; col < boardSize; col++) {
+        // Skip outer border so top/left/right/bottom lines are dead
+        if (row === 0 || row === boardSize - 1 || col === 0 || col === boardSize - 1) continue;
+
         const stoneValue = board[row]?.[col] ?? 0;
         const isHighlighted = !!lastMove && lastMove.row === row && lastMove.col === col;
         const isWinningStone = !!winningSet?.has(`${row},${col}`);
         points.push(
           <TouchableOpacity
             key={`point-${row}-${col}`}
-            style={[styles.intersection, { 
-              left: col * CELL_SIZE, 
-              top: row * CELL_SIZE 
+            style={[styles.intersection, {
+              left: col * CELL_SIZE,
+              top: row * CELL_SIZE,
             }, webNoOutlineStyle]}
             onPress={() => onCellPress(row, col)}
             activeOpacity={1}
@@ -121,9 +125,9 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
         );
       }
     }
-    
+
     return points;
-  };
+  }, [board, boardSize, lastMove, winningSet, onCellPress, webNoOutlineStyle]);
 
   return (
     <View style={styles.container}>
@@ -144,12 +148,12 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
           onLayout={handleVerticalLayout}
         >
           <View style={[styles.board, { width: boardPixelSize, height: boardPixelSize }]}>
-            {renderGridLines()}
+            {gridLines}
             <View
               pointerEvents="none"
               style={[styles.centerDot, { left: boardCenterOffset, top: boardCenterOffset }]}
             />
-            {renderIntersections()}
+            {intersections}
           </View>
         </ScrollView>
       </ScrollView>

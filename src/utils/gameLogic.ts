@@ -7,14 +7,11 @@ export const initializeBoard = (): number[][] => {
 };
 
 // Check if the move is valid (cell is empty)
+// A move is valid only if it's inside the playable inner area (not on the outermost border)
 export const isValidMove = (board: number[][], row: number, col: number): boolean => {
-  return (
-    row > 0 &&
-    row < BOARD_SIZE &&
-    col > 0 &&
-    col < BOARD_SIZE &&
-    board[row][col] === 0
-  );
+  const insidePlayableRows = row > 0 && row < BOARD_SIZE - 1;
+  const insidePlayableCols = col > 0 && col < BOARD_SIZE - 1;
+  return insidePlayableRows && insidePlayableCols && board[row][col] === 0;
 };
 
 // Check for a win (5 in a row)
@@ -63,8 +60,9 @@ export const getWinningCells = (
 
 // Check if the board is full (draw)
 export const isBoardFull = (board: number[][]): boolean => {
-  for (let row = 0; row < BOARD_SIZE; row++) {
-    for (let col = 0; col < BOARD_SIZE; col++) {
+  // Only consider the playable inner area (exclude outer border)
+  for (let row = 1; row < BOARD_SIZE - 1; row++) {
+    for (let col = 1; col < BOARD_SIZE - 1; col++) {
       if (board[row][col] === 0) {
         return false;
       }

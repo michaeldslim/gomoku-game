@@ -81,7 +81,8 @@ const Stone: React.FC<StoneProps> = ({ player, isHighlighted, isWinningStone }) 
     };
   }, [isWinningStone, winGlow]);
 
-  const ringColor = player === 1 ? '#FFD166' : '#1D4ED8';
+  const ringColor = player === 1 ? '#000000' : '#FFFFFF';
+  const winColor = '#34D399';
 
   return (
     <View style={styles.container}>
@@ -114,6 +115,7 @@ const Stone: React.FC<StoneProps> = ({ player, isHighlighted, isWinningStone }) 
           style={[
             styles.winRing,
             {
+              borderColor: winColor,
               opacity: winGlow.interpolate({
                 inputRange: [0, 1],
                 outputRange: [0.6, 1],
@@ -136,11 +138,11 @@ const Stone: React.FC<StoneProps> = ({ player, isHighlighted, isWinningStone }) 
           { backgroundColor: player === 1 ? '#000' : '#fff' },
           player === 2 && styles.whiteStone,
           isHighlighted && (player === 1 ? styles.highlightBlack : styles.highlightWhite),
-          isWinningStone && styles.winStone,
+          isWinningStone && [styles.winStone, { borderColor: winColor }],
         ]}
       />
       {isWinningStone && (
-        <Text style={styles.winStar} pointerEvents="none">★</Text>
+        <Text style={[styles.winStar, { color: winColor }]} pointerEvents="none">★</Text>
       )}
     </View>
   );
@@ -171,11 +173,11 @@ const styles = StyleSheet.create({
   },
   highlightBlack: {
     borderWidth: 2,
-    borderColor: '#FFD166',
+    borderColor: '#000000',
   },
   highlightWhite: {
     borderWidth: 3,
-    borderColor: '#1D4ED8',
+    borderColor: '#FFFFFF',
   },
   pulseRing: {
     position: 'absolute',
