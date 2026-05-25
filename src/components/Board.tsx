@@ -104,8 +104,9 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
 
     for (let row = 0; row < boardSize; row++) {
       for (let col = 0; col < boardSize; col++) {
-        // Skip outer border so top/left/right/bottom lines are dead
-        if (row === 0 || row === boardSize - 1 || col === 0 || col === boardSize - 1) continue;
+        // Skip only top and left outer borders (row===0 or col===0);
+        // allow right (col===boardSize-1) and bottom (row===boardSize-1) to be playable.
+        if (row === 0 || col === 0) continue;
 
         const stoneValue = board[row]?.[col] ?? 0;
         const isHighlighted = !!lastMove && lastMove.row === row && lastMove.col === col;
