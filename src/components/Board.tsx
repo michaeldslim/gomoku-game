@@ -13,6 +13,7 @@ interface BoardProps {
 
 const CELL_SIZE = 30;
 const BOARD_PADDING = 15;
+const OUTER_LINE_THICKNESS = 4;
 
 const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCells, centerTrigger = 0 }) => {
   const { height: screenHeight } = useWindowDimensions();
@@ -76,20 +77,36 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
 
     // Horizontal lines
     for (let i = 0; i < boardSize; i++) {
+      const isOuter = i === 0 || i === boardSize - 1;
+      const topBase = BOARD_PADDING + i * CELL_SIZE;
+      const top = isOuter ? topBase - (OUTER_LINE_THICKNESS - 1) / 2 : topBase;
       lines.push(
         <View
           key={`h-${i}`}
-          style={[styles.line, styles.horizontalLine, { top: i * CELL_SIZE }]}
+          style={[
+            styles.line,
+            styles.horizontalLine,
+            isOuter ? { height: OUTER_LINE_THICKNESS } : undefined,
+            { top },
+          ]}
         />
       );
     }
 
     // Vertical lines
     for (let i = 0; i < boardSize; i++) {
+      const isOuter = i === 0 || i === boardSize - 1;
+      const leftBase = BOARD_PADDING + i * CELL_SIZE;
+      const left = isOuter ? leftBase - (OUTER_LINE_THICKNESS - 1) / 2 : leftBase;
       lines.push(
         <View
           key={`v-${i}`}
-          style={[styles.line, styles.verticalLine, { left: i * CELL_SIZE }]}
+          style={[
+            styles.line,
+            styles.verticalLine,
+            isOuter ? { width: OUTER_LINE_THICKNESS } : undefined,
+            { left },
+          ]}
         />
       );
     }
@@ -104,20 +121,17 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
 
     for (let row = 0; row < boardSize; row++) {
       for (let col = 0; col < boardSize; col++) {
-        // Skip only top and left outer borders (row===0 or col===0);
-        // allow right (col===boardSize-1) and bottom (row===boardSize-1) to be playable.
-        if (row === 0 || col === 0) continue;
-
+        // All intersections (including outermost rows/cols) are playable.
         const stoneValue = board[row]?.[col] ?? 0;
         const isHighlighted = !!lastMove && lastMove.row === row && lastMove.col === col;
         const isWinningStone = !!winningSet?.has(`${row},${col}`);
         points.push(
           <TouchableOpacity
             key={`point-${row}-${col}`}
-            style={[styles.intersection, {
-              left: col * CELL_SIZE,
-              top: row * CELL_SIZE,
-            }, webNoOutlineStyle]}
+              style={[styles.intersection, {
+                left: BOARD_PADDING + col * CELL_SIZE,
+                top: BOARD_PADDING + row * CELL_SIZE,
+              }, webNoOutlineStyle]}
             onPress={() => onCellPress(row, col)}
             activeOpacity={1}
           >
@@ -152,9 +166,9 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
             {gridLines}
             <View
               pointerEvents="none"
-              style={[styles.centerDot, { left: boardCenterOffset, top: boardCenterOffset }]}
+              style={[styles.centerDot, { left: BOARD_PADDING + boardCenterOffset, top: BOARD_PADDING + boardCenterOffset }]}
             />
-            {intersections}
+              {intersections}
           </View>
         </ScrollView>
       </ScrollView>
