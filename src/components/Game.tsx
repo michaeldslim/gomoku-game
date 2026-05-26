@@ -474,6 +474,16 @@ const Game: React.FC<GameProps> = ({
     return () => clearTimeout(t);
   }, [winner]);
 
+  // Show loss popup when AI wins
+  useEffect(() => {
+    if (winner !== AI_PLAYER) return;
+    setShowVictoryPopup(true);
+    const t = setTimeout(() => {
+      setShowVictoryPopup(false);
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [winner]);
+
   // Trigger fireworks when score first reaches 100; sync score to DB
   useEffect(() => {
     if (!hasMountedScoreEffectRef.current) {
@@ -671,7 +681,12 @@ const Game: React.FC<GameProps> = ({
           centerTrigger={boardCenterTrigger}
         />
         <Fireworks visible={showFireworks} width={boardSize.width} height={boardSize.height} />
-        <VictoryPopup visible={showVictoryPopup} text={language === 'ko' ? '승!' : 'Win!'} duration={3000} />
+        <VictoryPopup
+          visible={showVictoryPopup}
+          winner={winner}
+          duration={3000}
+          language={language}
+        />
         {aiThinking && vsAI && (
           <View style={styles.aiThinkingOverlay} pointerEvents="none">
             <ActivityIndicator size="small" color="#457B9D" />

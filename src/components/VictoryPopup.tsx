@@ -6,10 +6,19 @@ interface Props {
   text?: string;
   duration?: number;
   language?: 'ko' | 'en';
+  backgroundColor?: string;
+  textColor?: string;
+  winner?: number | null; // 1 = human(black), 2 = AI(white), 0 = draw
 }
 
-const VictoryPopup: React.FC<Props> = ({ visible, text, duration = 3000, language = 'ko' }) => {
-  const finalText = text ?? (language === 'ko' ? '승!' : 'Win!');
+const VictoryPopup: React.FC<Props> = ({ visible, text, duration = 3000, language = 'ko', backgroundColor, textColor, winner = null }) => {
+  // Compute default text from winner/language when `text` is not provided.
+  let finalText: string;
+  if (typeof text === 'string') finalText = text;
+  else if (winner === 1) finalText = language === 'ko' ? '승!' : 'Win!';
+  else if (winner === 2) finalText = language === 'ko' ? '패!' : 'Lose!';
+  else if (winner === 0) finalText = language === 'ko' ? '무승부' : 'Draw';
+  else finalText = language === 'ko' ? '승!' : 'Win!';
   const scale = useRef(new Animated.Value(0.6)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -47,13 +56,14 @@ const VictoryPopup: React.FC<Props> = ({ visible, text, duration = 3000, languag
       <Animated.View
         style={[
           styles.bubble,
+          { backgroundColor: backgroundColor ?? (winner === 2 ? '#000000' : styles.bubble.backgroundColor) },
           {
             opacity: opacity,
             transform: [{ scale }],
           },
         ]}
       >
-        <Text style={styles.text}>{finalText}</Text>
+        <Text style={[styles.text, { color: textColor ?? (winner === 2 ? '#FFFFFF' : styles.text.color) }]}>{finalText}</Text>
       </Animated.View>
     </View>
   );
