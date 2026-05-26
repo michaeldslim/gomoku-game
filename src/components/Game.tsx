@@ -64,6 +64,7 @@ const Game: React.FC<GameProps> = ({
   const hasMountedScoreEffectRef = useRef<boolean>(false);
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
   const [showVictoryPopup, setShowVictoryPopup] = useState<boolean>(false);
+  const [popupText, setPopupText] = useState<string | undefined>(undefined);
   const [winningCells, setWinningCells] = useState<{ row: number; col: number }[] | null>(null);
   const [boardSize, setBoardSize] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
   const [boardCenterTrigger, setBoardCenterTrigger] = useState(0);
@@ -492,8 +493,12 @@ const Game: React.FC<GameProps> = ({
     }
     if (totalScore >= 100 && prevTotalScoreRef.current < 100) {
       setShowFireworks(true);
+      setPopupText(language === 'ko' ? '참 잘했어요!' : 'You did great!');
+      setShowVictoryPopup(true);
       setTimeout(() => {
         setShowFireworks(false);
+        setShowVictoryPopup(false);
+        setPopupText(undefined);
         setTotalScore(0);
         setAiDifficulty('intermediate');
       }, 4500);
@@ -684,6 +689,7 @@ const Game: React.FC<GameProps> = ({
         <VictoryPopup
           visible={showVictoryPopup}
           winner={winner}
+          text={popupText}
           duration={3000}
           language={language}
         />
