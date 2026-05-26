@@ -36,8 +36,13 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
     (animated: boolean) => {
       if (!horizontalViewportWidth || !verticalViewportHeight) return;
 
-      const targetX = Math.max(0, (boardPixelSize - horizontalViewportWidth) / 2);
-      const targetY = Math.max(0, (boardPixelSize - verticalViewportHeight) / 2);
+      // Center the board on the center intersection (red dot). This is more
+      // robust when line thickness or padding changes affect visual bounds.
+      const centerX = BOARD_PADDING + boardCenterOffset;
+      const centerY = BOARD_PADDING + boardCenterOffset;
+
+      const targetX = Math.max(0, centerX - horizontalViewportWidth / 2);
+      const targetY = Math.max(0, centerY - verticalViewportHeight / 2);
 
       horizontalScrollRef.current?.scrollTo({ x: targetX, y: 0, animated });
       verticalScrollRef.current?.scrollTo({ x: 0, y: targetY, animated });
