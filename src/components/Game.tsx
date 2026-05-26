@@ -65,6 +65,7 @@ const Game: React.FC<GameProps> = ({
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
   const [showVictoryPopup, setShowVictoryPopup] = useState<boolean>(false);
   const [popupText, setPopupText] = useState<string | undefined>(undefined);
+  const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [winningCells, setWinningCells] = useState<{ row: number; col: number }[] | null>(null);
   const [boardSize, setBoardSize] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
   const [boardCenterTrigger, setBoardCenterTrigger] = useState(0);
@@ -466,23 +467,43 @@ const Game: React.FC<GameProps> = ({
     if (winner !== HUMAN_PLAYER) return;
     // If score just hit 100, the score-100 effect handles fireworks (4.5 s)
     if (totalScore >= 100) return;
+    if (popupTimeoutRef.current) {
+      clearTimeout(popupTimeoutRef.current);
+      popupTimeoutRef.current = null;
+    }
     setShowFireworks(true);
     setShowVictoryPopup(true);
-    const t = setTimeout(() => {
+    popupTimeoutRef.current = setTimeout(() => {
       setShowFireworks(false);
       setShowVictoryPopup(false);
+      popupTimeoutRef.current = null;
     }, 3000);
-    return () => clearTimeout(t);
+    return () => {
+      if (popupTimeoutRef.current) {
+        clearTimeout(popupTimeoutRef.current);
+        popupTimeoutRef.current = null;
+      }
+    };
   }, [winner]);
 
   // Show loss popup when AI wins
   useEffect(() => {
     if (winner !== AI_PLAYER) return;
+    if (popupTimeoutRef.current) {
+      clearTimeout(popupTimeoutRef.current);
+      popupTimeoutRef.current = null;
+    }
     setShowVictoryPopup(true);
-    const t = setTimeout(() => {
+    popupTimeoutRef.current = setTimeout(() => {
       setShowVictoryPopup(false);
+      popupTimeoutRef.current = null;
     }, 3000);
-    return () => clearTimeout(t);
+    return () => {
+      if (popupTimeoutRef.current) {
+        clearTimeout(popupTimeoutRef.current);
+        popupTimeoutRef.current = null;
+      }
+    };
   }, [winner]);
 
   // Trigger fireworks when score first reaches 100; sync score to DB
@@ -492,15 +513,20 @@ const Game: React.FC<GameProps> = ({
       return;
     }
     if (totalScore >= 100 && prevTotalScoreRef.current < 100) {
+      if (popupTimeoutRef.current) {
+        clearTimeout(popupTimeoutRef.current);
+        popupTimeoutRef.current = null;
+      }
       setShowFireworks(true);
       setPopupText(language === 'ko' ? '참 잘했어요!' : 'You did great!');
       setShowVictoryPopup(true);
-      setTimeout(() => {
+      popupTimeoutRef.current = setTimeout(() => {
         setShowFireworks(false);
         setShowVictoryPopup(false);
         setPopupText(undefined);
         setTotalScore(0);
         setAiDifficulty('intermediate');
+        popupTimeoutRef.current = null;
       }, 4500);
       // Play wow sound
       (async () => {
