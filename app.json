@@ -29,7 +29,11 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-av"
+    ],
+    "assetBundlePatterns": [
+      "assets/**/*"
     ],
     "updates": {
       "url": "https://u.expo.dev/174f040a-54d5-40cd-927a-c7a304b8d90a"

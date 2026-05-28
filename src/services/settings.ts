@@ -8,12 +8,16 @@ export const INTERMEDIATE_TOP_POOL_MAX = 5;
 export const DEFAULT_INTERMEDIATE_TOP_POOL_SIZE = 4;
 export const DEFAULT_EXPERT_TOP_POOL = EXPERT_TOP_POOL_EASY;
 export const DEFAULT_TIMER_ENABLED = false;
+export const DEFAULT_BG_MUSIC_ENABLED = false;
+export const DEFAULT_BG_MUSIC_VOLUME = 0.2;
 
 export interface UserSettings {
   userHandle: string;
   timerEnabled: boolean;
   intermediateTopPoolSize: number;
   expertTopPool: number;
+  bgMusicEnabled: boolean;
+  bgMusicVolume: number;
 }
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -51,6 +55,20 @@ const normalizeTimerEnabled = (value: unknown): boolean => {
   return value;
 };
 
+const normalizeBgMusicEnabled = (value: unknown): boolean => {
+  if (typeof value !== 'boolean') {
+    return DEFAULT_BG_MUSIC_ENABLED;
+  }
+  return value;
+};
+
+const normalizeBgMusicVolume = (value: unknown): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return DEFAULT_BG_MUSIC_VOLUME;
+  }
+  return Math.round(clamp(value, 0, 1) * 10) / 10;
+};
+
 const normalizeSettings = (raw: unknown): UserSettings => {
   const source = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {};
 
@@ -59,6 +77,8 @@ const normalizeSettings = (raw: unknown): UserSettings => {
     timerEnabled: normalizeTimerEnabled(source.timerEnabled),
     intermediateTopPoolSize: normalizeIntermediateTopPoolSize(source.intermediateTopPoolSize),
     expertTopPool: clamp(normalizeExpertTopPool(source.expertTopPool), EXPERT_TOP_POOL_HARD, EXPERT_TOP_POOL_EASY),
+    bgMusicEnabled: normalizeBgMusicEnabled(source.bgMusicEnabled),
+    bgMusicVolume: normalizeBgMusicVolume(source.bgMusicVolume),
   };
 };
 
@@ -67,6 +87,8 @@ export const defaultUserSettings = (): UserSettings => ({
   timerEnabled: DEFAULT_TIMER_ENABLED,
   intermediateTopPoolSize: DEFAULT_INTERMEDIATE_TOP_POOL_SIZE,
   expertTopPool: DEFAULT_EXPERT_TOP_POOL,
+  bgMusicEnabled: DEFAULT_BG_MUSIC_ENABLED,
+  bgMusicVolume: DEFAULT_BG_MUSIC_VOLUME,
 });
 
 export async function fetchUserSettings(): Promise<UserSettings> {

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EXPERT_TOP_POOL_EASY, EXPERT_TOP_POOL_HARD, EXPERT_TOP_POOL_MEDIUM } from '../utils/aiLogic';
 import {
@@ -51,11 +52,15 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
   const [timerEnabled, setTimerEnabled] = useState(initialSettings.timerEnabled);
   const [intermediateTopPoolSize, setIntermediateTopPoolSize] = useState(initialSettings.intermediateTopPoolSize);
   const [expertTopPool, setExpertTopPool] = useState(initialSettings.expertTopPool);
+  const [bgMusicEnabled, setBgMusicEnabled] = useState(initialSettings.bgMusicEnabled);
+  const [bgMusicVolume, setBgMusicVolume] = useState(initialSettings.bgMusicVolume);
   useEffect(() => {
     setUserHandle(initialSettings.userHandle);
     setTimerEnabled(initialSettings.timerEnabled);
     setIntermediateTopPoolSize(initialSettings.intermediateTopPoolSize);
     setExpertTopPool(initialSettings.expertTopPool);
+    setBgMusicEnabled(initialSettings.bgMusicEnabled);
+    setBgMusicVolume(initialSettings.bgMusicVolume);
   }, [initialSettings]);
 
   const nicknameChanged = userHandle.trim() !== initialSettings.userHandle;
@@ -67,6 +72,8 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
         timerEnabled,
         intermediateTopPoolSize: sanitizeIntermediateTopPoolSize(intermediateTopPoolSize),
         expertTopPool: sanitizeExpertTopPool(expertTopPool),
+        bgMusicEnabled,
+        bgMusicVolume,
         ...patch,
       };
       await onSave(next);
@@ -110,6 +117,46 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
             autoCorrect={false}
           />
           <Text style={styles.hint}>Used for future profile/leaderboard labeling.</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>Background Music</Text>
+          <Text style={styles.hint}>Play background music during the game.</Text>
+          <View style={styles.chipRow}>
+            <TouchableOpacity
+              style={[styles.chip, bgMusicEnabled && styles.chipActive]}
+              onPress={() => { setBgMusicEnabled(true); autoSave({ bgMusicEnabled: true }); }}
+            >
+              <Text style={[styles.chipText, bgMusicEnabled && styles.chipTextActive]}>ON</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.chip, !bgMusicEnabled && styles.chipActive]}
+              onPress={() => { setBgMusicEnabled(false); autoSave({ bgMusicEnabled: false }); }}
+            >
+              <Text style={[styles.chipText, !bgMusicEnabled && styles.chipTextActive]}>OFF</Text>
+            </TouchableOpacity>
+          </View>
+          {bgMusicEnabled && (
+            <View style={styles.sliderRow}>
+              <Text style={styles.sliderLabel}>Volume: {bgMusicVolume.toFixed(1)}</Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={1}
+                step={0.1}
+                value={bgMusicVolume}
+                onValueChange={(v) => setBgMusicVolume(Math.round(v * 10) / 10)}
+                onSlidingComplete={(v) => {
+                  const rounded = Math.round(v * 10) / 10;
+                  setBgMusicVolume(rounded);
+                  autoSave({ bgMusicVolume: rounded });
+                }}
+                minimumTrackTintColor="#457B9D"
+                maximumTrackTintColor="#D1D5DB"
+                thumbTintColor="#457B9D"
+              />
+            </View>
+          )}
         </View>
 
         <View style={styles.card}>
@@ -285,6 +332,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#334155',
+  },
+  sliderRow: {
+    marginTop: 12,
+  },
+  sliderLabel: {
+    fontSize: 13,
+    color: '#334155',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
   },
   saveButton: {
     marginTop: 8,

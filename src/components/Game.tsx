@@ -28,6 +28,8 @@ interface GameProps {
   intermediateTopPoolSize?: number;
   expertTopPool?: number;
   language?: 'ko' | 'en';
+  bgMusicEnabled?: boolean;
+  bgMusicVolume?: number;
 }
 
 const Game: React.FC<GameProps> = ({
@@ -40,6 +42,8 @@ const Game: React.FC<GameProps> = ({
   intermediateTopPoolSize = 4,
   expertTopPool = 3,
   language = 'ko',
+  bgMusicEnabled = true,
+  bgMusicVolume = 0.2,
 }) => {
   const [board, setBoard] = useState<number[][]>(initializeBoard());
   const [currentPlayer, setCurrentPlayer] = useState<number>(1); // 1 for black, 2 for white
@@ -78,6 +82,7 @@ const Game: React.FC<GameProps> = ({
   const loseSoundRef = useRef<Audio.Sound | null>(null);
   const stoneSoundRef = useRef<Audio.Sound | null>(null);
   const wowSoundRef = useRef<Audio.Sound | null>(null);
+  const bgMusicRef = useRef<Audio.Sound | null>(null);
   const lastPlayedWinnerRef = useRef<number | null>(null);
   const soundsReadyRef = useRef<boolean>(false);
   const soundsReadyPromiseRef = useRef<Promise<void> | null>(null);
@@ -157,6 +162,25 @@ const Game: React.FC<GameProps> = ({
         soundsReadyRef.current = true;
         resolveSoundsReadyRef.current?.();
         resolveSoundsReadyRef.current = null;
+
+        // Load background music separately so a failure here never blocks
+        // the other sounds from playing.
+        try {
+          const bgResult = await Audio.Sound.createAsync(
+            require('../../assets/sounds/bm.mp3'),
+            { shouldPlay: bgMusicEnabled, isLooping: true, volume: bgMusicVolume }
+          );
+
+          if (cancelled) {
+            await bgResult.sound.stopAsync();
+            await bgResult.sound.unloadAsync();
+            return;
+          }
+
+          bgMusicRef.current = bgResult.sound;
+        } catch {
+          // Background music failed to load — other sounds still work
+        }
       } catch {
         // Ignore sound loading errors
       }
@@ -178,6 +202,10 @@ const Game: React.FC<GameProps> = ({
           if (wowSoundRef.current) {
             await wowSoundRef.current.unloadAsync();
           }
+          if (bgMusicRef.current) {
+            await bgMusicRef.current.stopAsync();
+            await bgMusicRef.current.unloadAsync();
+          }
         } catch {
           // Ignore unload errors
         } finally {
@@ -185,6 +213,7 @@ const Game: React.FC<GameProps> = ({
           loseSoundRef.current = null;
           stoneSoundRef.current = null;
           wowSoundRef.current = null;
+          bgMusicRef.current = null;
           soundsReadyRef.current = false;
           soundsReadyPromiseRef.current = null;
           resolveSoundsReadyRef.current = null;
@@ -198,6 +227,23 @@ const Game: React.FC<GameProps> = ({
       setAiDifficulty('expert');
     }
   }, [initialScore]);
+
+  // Sync background music enabled/volume with the live sound object
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!bgMusicRef.current) return;
+        if (bgMusicEnabled) {
+          await bgMusicRef.current.setVolumeAsync(bgMusicVolume);
+          await bgMusicRef.current.playAsync();
+        } else {
+          await bgMusicRef.current.pauseAsync();
+        }
+      } catch {
+        // Ignore
+      }
+    })();
+  }, [bgMusicEnabled, bgMusicVolume]);
 
   const playStoneSound = () => {
     (async () => {
