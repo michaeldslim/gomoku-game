@@ -163,7 +163,7 @@ function AppContent() {
         contentContainerStyle={styles.startContainerContent}
         showsVerticalScrollIndicator
       >
-        <InstructionScreen language={lang} onLanguageChange={handleLanguageChange} standalone={false} />
+        <InstructionScreen language={lang} standalone={false} />
 
         <TouchableOpacity
           style={styles.startButton}

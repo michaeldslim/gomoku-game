@@ -5,12 +5,11 @@ import { Language, t, translations } from '../utils/i18n';
 
 interface Props {
   language: Language;
-  onLanguageChange: (language: Language) => void;
   onClose?: () => void;
   standalone?: boolean;
 }
 
-export default function InstructionScreen({ language, onLanguageChange, onClose, standalone = true }: Props) {
+export default function InstructionScreen({ language, onClose, standalone = true }: Props) {
   const insets = useSafeAreaInsets();
   const lines = translations[language].instructionLines;
   const isStandalone = standalone;
@@ -23,38 +22,11 @@ export default function InstructionScreen({ language, onLanguageChange, onClose,
             <Text style={styles.backText}>{t(language, 'back')}</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{t(language, 'instructionsTitle')}</Text>
-          <View style={styles.toggleGroupSmall}>
-            <TouchableOpacity
-              style={[styles.toggleChip, language === 'ko' && styles.toggleChipActive]}
-              onPress={() => onLanguageChange('ko')}
-            >
-              <Text style={[styles.toggleChipText, language === 'ko' && styles.toggleTextActive]}>KO</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toggleChip, language === 'en' && styles.toggleChipActive]}
-              onPress={() => onLanguageChange('en')}
-            >
-              <Text style={[styles.toggleChipText, language === 'en' && styles.toggleTextActive]}>EN</Text>
-            </TouchableOpacity>
-          </View>
+          <View style={styles.headerSpacer} />
         </View>
       ) : (
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>{t(language, 'instructionsTitle')}</Text>
-          <View style={styles.toggleGroupSmall}>
-            <TouchableOpacity
-              style={[styles.toggleChip, language === 'ko' && styles.toggleChipActive]}
-              onPress={() => onLanguageChange('ko')}
-            >
-              <Text style={[styles.toggleChipText, language === 'ko' && styles.toggleTextActive]}>KO</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toggleChip, language === 'en' && styles.toggleChipActive]}
-              onPress={() => onLanguageChange('en')}
-            >
-              <Text style={[styles.toggleChipText, language === 'en' && styles.toggleTextActive]}>EN</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       )}
 
