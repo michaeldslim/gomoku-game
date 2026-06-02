@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Language, t } from '../utils/i18n';
 
 interface GameStatusProps {
   currentPlayer: number;
@@ -8,23 +9,24 @@ interface GameStatusProps {
   onUndo: () => void;
   undoCount: number;
   onLeaderboard?: () => void;
+  language?: Language;
 }
 
-const GameStatus: React.FC<GameStatusProps> = ({ currentPlayer, winner, onRestart, onUndo, undoCount, onLeaderboard }) => {
+const GameStatus: React.FC<GameStatusProps> = ({ currentPlayer, winner, onRestart, onUndo, undoCount, onLeaderboard, language = 'ko' }) => {
   return (
     <View style={styles.container}>
       {winner === null ? (
         <Text style={styles.status}>
-          현재 차례: {currentPlayer === 1 ? '흑돌(⚫)' : '백돌(⚪)'}
+          {currentPlayer === 1 ? t(language, 'currentTurnBlack') : t(language, 'currentTurnWhite')}
         </Text>
       ) : (
         <Text style={styles.winner}>
-          {winner === 0 ? '무승부!' : winner === 1 ? '흑돌(⚫) 승리!' : '백돌(⚪) 승리!'}
+          {winner === 0 ? t(language, 'draw') : winner === 1 ? t(language, 'blackWins') : t(language, 'whiteWins')}
         </Text>
       )}
       <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.button} onPress={onRestart}>
-          <Text style={styles.buttonText}>게임 다시 시작</Text>
+          <Text style={styles.buttonText}>{t(language, 'restartGame')}</Text>
         </TouchableOpacity>
         {winner === null && (
           <TouchableOpacity
@@ -33,13 +35,13 @@ const GameStatus: React.FC<GameStatusProps> = ({ currentPlayer, winner, onRestar
             disabled={undoCount === 0}
           >
             <Text style={[styles.buttonText, undoCount === 0 && styles.buttonTextDisabled]}>
-              무르기 ({undoCount})
+              {t(language, 'undo')} ({undoCount})
             </Text>
           </TouchableOpacity>
         )}
         {onLeaderboard && (
           <TouchableOpacity style={[styles.button, styles.leaderboardButton]} onPress={onLeaderboard}>
-            <Text style={styles.buttonText}>리더보드</Text>
+            <Text style={styles.buttonText}>{t(language, 'leaderboardBtn')}</Text>
           </TouchableOpacity>
         )}
       </View>

@@ -17,6 +17,7 @@ import {
   INTERMEDIATE_TOP_POOL_MIN,
   UserSettings,
 } from '../services/settings';
+import { Language, t } from '../utils/i18n';
 
 interface Props {
   initialSettings: UserSettings;
@@ -54,6 +55,7 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
   const [expertTopPool, setExpertTopPool] = useState(initialSettings.expertTopPool);
   const [bgMusicEnabled, setBgMusicEnabled] = useState(initialSettings.bgMusicEnabled);
   const [bgMusicVolume, setBgMusicVolume] = useState(initialSettings.bgMusicVolume);
+  const [language, setLanguage] = useState<Language>(initialSettings.language);
   useEffect(() => {
     setUserHandle(initialSettings.userHandle);
     setTimerEnabled(initialSettings.timerEnabled);
@@ -61,6 +63,7 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
     setExpertTopPool(initialSettings.expertTopPool);
     setBgMusicEnabled(initialSettings.bgMusicEnabled);
     setBgMusicVolume(initialSettings.bgMusicVolume);
+    setLanguage(initialSettings.language);
   }, [initialSettings]);
 
   const nicknameChanged = userHandle.trim() !== initialSettings.userHandle;
@@ -74,11 +77,12 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
         expertTopPool: sanitizeExpertTopPool(expertTopPool),
         bgMusicEnabled,
         bgMusicVolume,
+        language,
         ...patch,
       };
       await onSave(next);
     } catch {
-      Alert.alert('Error', 'Failed to save settings. Please try again.');
+      Alert.alert(t(language, 'error'), t(language, 'failedSaveSettings'));
     }
   };
 
@@ -92,9 +96,9 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 14 }]}> 
         <TouchableOpacity onPress={onBack} style={[styles.toggleChip, styles.backButton]}>
-          <Text style={styles.toggleChipText}>뒤로</Text>
+          <Text style={styles.toggleChipText}>{t(language, 'back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>⚙️ Settings</Text>
+        <Text style={styles.title}>{t(language, 'settingsTitle')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -104,41 +108,59 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
         showsVerticalScrollIndicator
       >
         <View style={styles.card}>
-          <Text style={styles.label}>Nickname</Text>
+          <Text style={styles.label}>{t(language, 'languageSettingLabel')}</Text>
+          <View style={styles.chipRow}>
+            <TouchableOpacity
+              style={[styles.chip, language === 'ko' && styles.chipActive]}
+              onPress={() => { setLanguage('ko'); autoSave({ language: 'ko' }); }}
+            >
+              <Text style={[styles.chipText, language === 'ko' && styles.chipTextActive]}>한국어</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.chip, language === 'en' && styles.chipActive]}
+              onPress={() => { setLanguage('en'); autoSave({ language: 'en' }); }}
+            >
+              <Text style={[styles.chipText, language === 'en' && styles.chipTextActive]}>English</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>{t(language, 'nicknameLabel')}</Text>
           <TextInput
             style={styles.input}
             value={userHandle}
             onChangeText={setUserHandle}
             onBlur={handleSaveNickname}
             onSubmitEditing={handleSaveNickname}
-            placeholder="Your nickname"
+            placeholder={t(language, 'nicknamePlaceholder')}
             maxLength={24}
             autoCapitalize="none"
             autoCorrect={false}
           />
-          <Text style={styles.hint}>Used for future profile/leaderboard labeling.</Text>
+          <Text style={styles.hint}>{t(language, 'nicknameHint')}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>Background Music</Text>
-          <Text style={styles.hint}>Play background music during the game.</Text>
+          <Text style={styles.label}>{t(language, 'bgMusicLabel')}</Text>
+          <Text style={styles.hint}>{t(language, 'bgMusicHint')}</Text>
           <View style={styles.chipRow}>
             <TouchableOpacity
               style={[styles.chip, bgMusicEnabled && styles.chipActive]}
               onPress={() => { setBgMusicEnabled(true); autoSave({ bgMusicEnabled: true }); }}
             >
-              <Text style={[styles.chipText, bgMusicEnabled && styles.chipTextActive]}>ON</Text>
+              <Text style={[styles.chipText, bgMusicEnabled && styles.chipTextActive]}>{t(language, 'on')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.chip, !bgMusicEnabled && styles.chipActive]}
               onPress={() => { setBgMusicEnabled(false); autoSave({ bgMusicEnabled: false }); }}
             >
-              <Text style={[styles.chipText, !bgMusicEnabled && styles.chipTextActive]}>OFF</Text>
+              <Text style={[styles.chipText, !bgMusicEnabled && styles.chipTextActive]}>{t(language, 'off')}</Text>
             </TouchableOpacity>
           </View>
           {bgMusicEnabled && (
             <View style={styles.sliderRow}>
-              <Text style={styles.sliderLabel}>Volume: {bgMusicVolume.toFixed(1)}</Text>
+              <Text style={styles.sliderLabel}>{t(language, 'volume')}: {bgMusicVolume.toFixed(1)}</Text>
               <Slider
                 style={styles.slider}
                 minimumValue={0}
@@ -160,27 +182,27 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>Timer</Text>
-          <Text style={styles.hint}>Enable 15-second turn timer for human turns.</Text>
+          <Text style={styles.label}>{t(language, 'timerLabel')}</Text>
+          <Text style={styles.hint}>{t(language, 'timerHint')}</Text>
           <View style={styles.chipRow}>
             <TouchableOpacity
               style={[styles.chip, timerEnabled && styles.chipActive]}
               onPress={() => { setTimerEnabled(true); autoSave({ timerEnabled: true }); }}
             >
-              <Text style={[styles.chipText, timerEnabled && styles.chipTextActive]}>ON</Text>
+              <Text style={[styles.chipText, timerEnabled && styles.chipTextActive]}>{t(language, 'on')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.chip, !timerEnabled && styles.chipActive]}
               onPress={() => { setTimerEnabled(false); autoSave({ timerEnabled: false }); }}
             >
-              <Text style={[styles.chipText, !timerEnabled && styles.chipTextActive]}>OFF</Text>
+              <Text style={[styles.chipText, !timerEnabled && styles.chipTextActive]}>{t(language, 'off')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>Intermediate Mode Pool (Score &lt; 80)</Text>
-          <Text style={styles.hint}>1 = hardest, 5 = easier</Text>
+          <Text style={styles.label}>{t(language, 'intermediateModeLabel')}</Text>
+          <Text style={styles.hint}>{t(language, 'intermediateModeHint')}</Text>
           <View style={styles.chipRow}>
             {INTERMEDIATE_OPTIONS.map((value) => (
               <TouchableOpacity
@@ -195,17 +217,21 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>Expert Mode Pool (Score &gt;= 80)</Text>
-          <Text style={styles.hint}>Select one: Easy, Medium, Hard</Text>
+          <Text style={styles.label}>{t(language, 'expertModeLabel')}</Text>
+          <Text style={styles.hint}>{t(language, 'expertModeHint')}</Text>
           <View style={styles.chipRow}>
-            {EXPERT_OPTIONS.map((option) => (
+            {([
+              { labelKey: 'expertEasy' as const, value: EXPERT_TOP_POOL_EASY },
+              { labelKey: 'expertMedium' as const, value: EXPERT_TOP_POOL_MEDIUM },
+              { labelKey: 'expertHard' as const, value: EXPERT_TOP_POOL_HARD },
+            ]).map((option) => (
               <TouchableOpacity
                 key={option.value}
                 style={[styles.chip, expertTopPool === option.value && styles.chipActiveExpert]}
                 onPress={() => { setExpertTopPool(option.value); autoSave({ expertTopPool: sanitizeExpertTopPool(option.value) }); }}
               >
                 <Text style={[styles.chipText, expertTopPool === option.value && styles.chipTextActive]}>
-                  {option.label}
+                  {t(language, option.labelKey)}
                 </Text>
               </TouchableOpacity>
             ))}

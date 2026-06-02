@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Language, t } from '../utils/i18n';
 
 interface Props {
   visible: boolean;
   text?: string;
   duration?: number;
-  language?: 'ko' | 'en';
+  language?: Language;
   backgroundColor?: string;
   textColor?: string;
   winner?: number | null; // 1 = human(black), 2 = AI(white), 0 = draw
@@ -15,10 +16,10 @@ const VictoryPopup: React.FC<Props> = ({ visible, text, duration = 3000, languag
   // Compute default text from winner/language when `text` is not provided.
   let finalText: string;
   if (typeof text === 'string') finalText = text;
-  else if (winner === 1) finalText = language === 'ko' ? '승!' : 'Win!';
-  else if (winner === 2) finalText = language === 'ko' ? '패!' : 'Lose!';
-  else if (winner === 0) finalText = language === 'ko' ? '무승부' : 'Draw';
-  else finalText = language === 'ko' ? '승!' : 'Win!';
+  else if (winner === 1) finalText = t(language, 'win');
+  else if (winner === 2) finalText = t(language, 'lose');
+  else if (winner === 0) finalText = t(language, 'drawPopup');
+  else finalText = t(language, 'win');
   const scale = useRef(new Animated.Value(0.6)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
