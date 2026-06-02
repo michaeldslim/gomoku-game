@@ -1,8 +1,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-type Language = 'ko' | 'en';
+import { Language, t, translations } from '../utils/i18n';
 
 interface Props {
   language: Language;
@@ -11,38 +10,9 @@ interface Props {
   standalone?: boolean;
 }
 
-const instructionCopy: Record<Language, { title: string; lines: string[]; toggleLabel: string; selectedText: string }> = {
-  ko: {
-    title: '게임 방법',
-    lines: [
-      '1. 흑돌이 먼저 시작합니다.',
-      '2. 가로, 세로, 대각선으로 먼저 5개를 연결하면 승리합니다.',
-      '3. 보드가 가득 차도 승자가 없으면 무승부입니다.',
-      '4. 보드는 가로/세로 방향으로 스크롤할 수 있습니다.',
-      '5. 설정에서 15초 턴 타이머를 활성화하여 턴 시간을 제한할 수 있습니다.',
-      '6. 점수가 80 이상이면 자동으로 Expert 모드로 전환됩니다.',
-    ],
-    toggleLabel: '언어 선택',
-    selectedText: '한국어',
-  },
-  en: {
-    title: 'How to Play',
-    lines: [
-      '1. Black always goes first.',
-      '2. Connect 5 stones in a row horizontally, vertically, or diagonally to win.',
-      '3. If the board is full with no winner, the game is a draw.',
-      '4. The board can be scrolled horizontally and vertically.',
-      '5. You can enable a 15-second turn timer in Settings to limit each turn.',
-      '6. When a score reaches 80 or higher, the game will switch to Expert mode.',
-    ],
-    toggleLabel: 'Language',
-    selectedText: 'English',
-  },
-};
-
 export default function InstructionScreen({ language, onLanguageChange, onClose, standalone = true }: Props) {
   const insets = useSafeAreaInsets();
-  const current = instructionCopy[language];
+  const lines = translations[language].instructionLines;
   const isStandalone = standalone;
 
   return (
@@ -50,9 +20,9 @@ export default function InstructionScreen({ language, onLanguageChange, onClose,
       {isStandalone ? (
         <View style={[styles.header, { paddingTop: insets.top + 8 }]}> 
           <TouchableOpacity onPress={onClose} style={styles.backButton}>
-            <Text style={styles.backText}>{language === 'ko' ? '뒤로' : 'Back'}</Text>
+            <Text style={styles.backText}>{t(language, 'back')}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{current.title}</Text>
+          <Text style={styles.title}>{t(language, 'instructionsTitle')}</Text>
           <View style={styles.toggleGroupSmall}>
             <TouchableOpacity
               style={[styles.toggleChip, language === 'ko' && styles.toggleChipActive]}
@@ -70,7 +40,7 @@ export default function InstructionScreen({ language, onLanguageChange, onClose,
         </View>
       ) : (
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>{current.title}</Text>
+          <Text style={styles.sectionTitle}>{t(language, 'instructionsTitle')}</Text>
           <View style={styles.toggleGroupSmall}>
             <TouchableOpacity
               style={[styles.toggleChip, language === 'ko' && styles.toggleChipActive]}
@@ -91,7 +61,7 @@ export default function InstructionScreen({ language, onLanguageChange, onClose,
       {isStandalone ? (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator>
           <View style={styles.instructionsCard}>
-            {current.lines.map((line) => (
+            {lines.map((line) => (
               <Text key={line} style={styles.instructionLine}>
                 {line}
               </Text>
@@ -101,7 +71,7 @@ export default function InstructionScreen({ language, onLanguageChange, onClose,
       ) : (
         <View style={styles.content}>
           <View style={styles.instructionsCard}>
-            {current.lines.map((line) => (
+            {lines.map((line) => (
               <Text key={line} style={styles.instructionLine}>
                 {line}
               </Text>

@@ -11,12 +11,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { clearLeaderboard, fetchLeaderboard, LeaderboardEntry } from '../services/leaderboard';
 import { fetchUserSettings } from '../services/settings';
+import { Language, t } from '../utils/i18n';
 
 interface Props {
   onBack: () => void;
+  language?: Language;
 }
 
-export default function LeaderboardScreen({ onBack }: Props) {
+export default function LeaderboardScreen({ onBack, language = 'ko' }: Props) {
   const insets = useSafeAreaInsets();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [userHandle, setUserHandle] = useState('');
@@ -42,10 +44,10 @@ export default function LeaderboardScreen({ onBack }: Props) {
   }, [load]);
 
   const handleResetLeaderboard = useCallback(() => {
-    Alert.alert('Reset Leaderboard', 'Delete all saved local leaderboard scores?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t(language, 'resetLeaderboardTitle'), t(language, 'resetLeaderboardMessage'), [
+      { text: t(language, 'cancel'), style: 'cancel' },
       {
-        text: 'Reset',
+        text: t(language, 'reset'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
@@ -53,16 +55,16 @@ export default function LeaderboardScreen({ onBack }: Props) {
               setLoading(true);
               await clearLeaderboard();
               await load();
-              Alert.alert('Cleared', 'Leaderboard data has been removed.');
+              Alert.alert(t(language, 'cleared'), t(language, 'leaderboardCleared'));
             } catch {
               setLoading(false);
-              Alert.alert('Error', 'Failed to clear leaderboard. Please try again.');
+              Alert.alert(t(language, 'error'), t(language, 'failedClearLeaderboard'));
             }
           })();
         },
       },
     ]);
-  }, [load]);
+  }, [load, language]);
 
   const getScoreBadge = (score: number): string => {
     if (score >= 100) return '🏆';
@@ -84,9 +86,9 @@ export default function LeaderboardScreen({ onBack }: Props) {
       <View style={styles.row}>
         <Text style={styles.rank}>{rankEmoji}</Text>
         <View style={styles.infoCol}>
-          <Text style={styles.scoreLine}>Score: {item.score}</Text>
-          <Text style={styles.dateLine}>Last Played: {item.date}</Text>
-          <Text style={styles.dateLine}>Started: {item.createdAt.slice(0, 10)}</Text>
+          <Text style={styles.scoreLine}>{t(language, 'scoreLabel')}: {item.score}</Text>
+          <Text style={styles.dateLine}>{t(language, 'lastPlayed')}: {item.date}</Text>
+          <Text style={styles.dateLine}>{t(language, 'started')}: {item.createdAt.slice(0, 10)}</Text>
         </View>
         <View style={[styles.scorePill, item.score >= 100 && styles.masterPill]}>
           <Text style={[styles.scoreText, item.score >= 100 && styles.masterScoreText]}>
@@ -101,7 +103,7 @@ export default function LeaderboardScreen({ onBack }: Props) {
     <View style={styles.sectionCard}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {data.length === 0 ? (
-        <Text style={styles.sectionEmpty}>기록 없음</Text>
+        <Text style={styles.sectionEmpty}>{t(language, 'noRecords')}</Text>
       ) : (
         data.map((item) => (
           <View key={item.id} style={styles.sectionRowWrapper}>
@@ -116,15 +118,15 @@ export default function LeaderboardScreen({ onBack }: Props) {
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 14 }]}> 
         <TouchableOpacity onPress={onBack} style={[styles.toggleChip, styles.backButton]}>
-          <Text style={styles.toggleChipText}>뒤로</Text>
+          <Text style={styles.toggleChipText}>{t(language, 'back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>🏅 리더보드</Text>
+        <Text style={styles.title}>{t(language, 'leaderboardTitle')}</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={load} style={[styles.toggleChip, styles.actionButton]}>
-            <Text style={[styles.toggleChipText, styles.refreshText]}>Refresh</Text>
+            <Text style={[styles.toggleChipText, styles.refreshText]}>{t(language, 'refresh')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleResetLeaderboard} style={[styles.toggleChip, styles.actionButton]}>
-            <Text style={[styles.toggleChipText, styles.resetText]}>Clear</Text>
+            <Text style={[styles.toggleChipText, styles.resetText]}>{t(language, 'clear')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -133,8 +135,8 @@ export default function LeaderboardScreen({ onBack }: Props) {
         <ActivityIndicator size="large" color="#457B9D" style={styles.loader} />
       ) : entries.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>아직 기록이 없습니다.</Text>
-          <Text style={styles.emptySubtext}>게임에서 승리하여 첫 번째 플레이어가 되세요!</Text>
+          <Text style={styles.emptyText}>{t(language, 'noEntries')}</Text>
+          <Text style={styles.emptySubtext}>{t(language, 'noEntriesSubtext')}</Text>
         </View>
       ) : (
         <ScrollView
@@ -143,12 +145,12 @@ export default function LeaderboardScreen({ onBack }: Props) {
         >
           {userHandle.length > 0 && (
             <View style={styles.handleCard}>
-              <Text style={styles.handleLabel}>Nickname</Text>
+              <Text style={styles.handleLabel}>{t(language, 'nickname')}</Text>
               <Text style={styles.handleValue}>{userHandle}</Text>
             </View>
           )}
-          {renderSection('🏆 TOP (100+)', topEntries)}
-          {renderSection('🎯 BOTTOM (<100)', bottomEntries)}
+          {renderSection(t(language, 'topSection'), topEntries)}
+          {renderSection(t(language, 'bottomSection'), bottomEntries)}
         </ScrollView>
       )}
     </View>
