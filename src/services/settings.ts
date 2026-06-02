@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { EXPERT_TOP_POOL_EASY, EXPERT_TOP_POOL_HARD } from '../utils/aiLogic';
+import { Language } from '../utils/i18n';
 
 const SETTINGS_STORAGE_KEY = 'gomoku_settings_v1';
 
@@ -10,6 +11,7 @@ export const DEFAULT_EXPERT_TOP_POOL = EXPERT_TOP_POOL_EASY;
 export const DEFAULT_TIMER_ENABLED = false;
 export const DEFAULT_BG_MUSIC_ENABLED = false;
 export const DEFAULT_BG_MUSIC_VOLUME = 0.2;
+export const DEFAULT_LANGUAGE: Language = 'ko';
 
 export interface UserSettings {
   userHandle: string;
@@ -18,6 +20,7 @@ export interface UserSettings {
   expertTopPool: number;
   bgMusicEnabled: boolean;
   bgMusicVolume: number;
+  language: Language;
 }
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -69,6 +72,11 @@ const normalizeBgMusicVolume = (value: unknown): number => {
   return Math.round(clamp(value, 0, 1) * 10) / 10;
 };
 
+const normalizeLanguage = (value: unknown): Language => {
+  if (value === 'ko' || value === 'en') return value;
+  return DEFAULT_LANGUAGE;
+};
+
 const normalizeSettings = (raw: unknown): UserSettings => {
   const source = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {};
 
@@ -79,6 +87,7 @@ const normalizeSettings = (raw: unknown): UserSettings => {
     expertTopPool: clamp(normalizeExpertTopPool(source.expertTopPool), EXPERT_TOP_POOL_HARD, EXPERT_TOP_POOL_EASY),
     bgMusicEnabled: normalizeBgMusicEnabled(source.bgMusicEnabled),
     bgMusicVolume: normalizeBgMusicVolume(source.bgMusicVolume),
+    language: normalizeLanguage(source.language),
   };
 };
 
@@ -89,6 +98,7 @@ export const defaultUserSettings = (): UserSettings => ({
   expertTopPool: DEFAULT_EXPERT_TOP_POOL,
   bgMusicEnabled: DEFAULT_BG_MUSIC_ENABLED,
   bgMusicVolume: DEFAULT_BG_MUSIC_VOLUME,
+  language: DEFAULT_LANGUAGE,
 });
 
 export async function fetchUserSettings(): Promise<UserSettings> {
