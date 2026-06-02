@@ -15,42 +15,12 @@ import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { addLeaderboardEntry, fetchStartupScore, startFreshRun } from './src/services/leaderboard';
 import { defaultUserSettings, fetchUserSettings, saveUserSettings, UserSettings } from './src/services/settings';
+import { Language, t } from './src/utils/i18n';
 
-type Language = 'ko' | 'en';
 type Screen = 'home' | 'game' | 'leaderboard' | 'settings';
-
-const labelsByLanguage: Record<Language, {
-  title: string;
-  startGame: string;
-  leaderboard: string;
-  settings: string;
-  instructionButton: string;
-  instructionSummary: string;
-  loadingSettings: string;
-}> = {
-  ko: {
-    title: '오목 (Gomoku)',
-    startGame: '게임 시작',
-    leaderboard: '🏅 리더보드',
-    settings: '⚙️ 설정',
-    instructionButton: '설명',
-    instructionSummary: '설명 페이지로 이동하여 게임 방법을 확인하세요.',
-    loadingSettings: '설정 로딩 중...',
-  },
-  en: {
-    title: 'Gomoku',
-    startGame: 'Start Game',
-    leaderboard: '🏅 Leaderboard',
-    settings: '⚙️ Settings',
-    instructionButton: 'Instructions',
-    instructionSummary: 'Open the instructions page and toggle language for rules.',
-    loadingSettings: 'Loading settings...',
-  },
-};
 
 function AppContent() {
   const [screen, setScreen] = useState<Screen>('home');
-  const [language, setLanguage] = useState<Language>('ko');
   const [startupScore, setStartupScore] = useState(0);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [settings, setSettings] = useState<UserSettings>(defaultUserSettings());
@@ -104,6 +74,11 @@ function AppContent() {
     setSettings(saved);
   }, []);
 
+  const handleLanguageChange = useCallback(async (lang: Language) => {
+    const saved = await saveUserSettings({ ...settings, language: lang });
+    setSettings(saved);
+  }, [settings]);
+
   const handleSettingsBack = useCallback(() => {
     setScreen(settingsFromRef.current);
   }, []);
@@ -124,7 +99,7 @@ function AppContent() {
           timerEnabled={settings.timerEnabled}
           intermediateTopPoolSize={settings.intermediateTopPoolSize}
           expertTopPool={settings.expertTopPool}
-          language={language}
+          language={settings.language}
           bgMusicEnabled={settings.bgMusicEnabled}
           bgMusicVolume={settings.bgMusicVolume}
         />
@@ -132,6 +107,7 @@ function AppContent() {
           <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
             <LeaderboardScreen
               onBack={() => setScreen('game')}
+              language={settings.language}
             />
           </View>
         )}
@@ -154,6 +130,7 @@ function AppContent() {
       <View style={styles.container}>
         <LeaderboardScreen
           onBack={() => setScreen('home')}
+          language={settings.language}
         />
         <StatusBar style="auto" />
       </View>
@@ -174,11 +151,11 @@ function AppContent() {
   }
 
   // Home screen
-  const labels = labelsByLanguage[language];
+  const lang = settings.language;
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{labels.title}</Text>
+        <Text style={styles.title}>{t(lang, 'appTitle')}</Text>
       </View>
 
       <ScrollView
@@ -186,7 +163,7 @@ function AppContent() {
         contentContainerStyle={styles.startContainerContent}
         showsVerticalScrollIndicator
       >
-        <InstructionScreen language={language} onLanguageChange={setLanguage} standalone={false} />
+        <InstructionScreen language={lang} onLanguageChange={handleLanguageChange} standalone={false} />
 
         <TouchableOpacity
           style={styles.startButton}
@@ -196,12 +173,12 @@ function AppContent() {
           {isStartingGame ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
-            <Text style={styles.startButtonText}>{labels.startGame}</Text>
+            <Text style={styles.startButtonText}>{t(lang, 'startGame')}</Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.leaderboardButton} onPress={() => goToLeaderboard('home')}>
-          <Text style={styles.leaderboardButtonText}>{labels.leaderboard}</Text>
+          <Text style={styles.leaderboardButtonText}>{t(lang, 'leaderboardNav')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -210,7 +187,7 @@ function AppContent() {
           disabled={!settingsLoaded}
         >
           <Text style={styles.settingsButtonText}>
-            {settingsLoaded ? labels.settings : labels.loadingSettings}
+            {settingsLoaded ? t(lang, 'settingsNav') : t(lang, 'loadingSettings')}
           </Text>
         </TouchableOpacity>
       </ScrollView>

@@ -14,6 +14,7 @@ import {
   getWinningCells,
 } from '../utils/gameLogic';
 import { findBestMove, AIDifficulty } from '../utils/aiLogic';
+import { t } from '../utils/i18n';
 
 const TIMER_DURATION = 15; // 15 seconds per turn
 const EXPERT_THRESHOLD = 80;
@@ -564,7 +565,7 @@ const Game: React.FC<GameProps> = ({
         popupTimeoutRef.current = null;
       }
       setShowFireworks(true);
-      setPopupText(language === 'ko' ? '참 잘했어요!' : 'You did great!');
+      setPopupText(t(language, 'scoreGreat'));
       setShowVictoryPopup(true);
       popupTimeoutRef.current = setTimeout(() => {
         setShowFireworks(false);
@@ -618,6 +619,7 @@ const Game: React.FC<GameProps> = ({
         onUndo={handleUndo}
         undoCount={undoCount}
         onLeaderboard={onLeaderboard}
+        language={language}
       />
 
       {/* Score banner */}
@@ -627,18 +629,18 @@ const Game: React.FC<GameProps> = ({
             {/* Header row: label + score + badges */}
             <View style={styles.scoreRow}>
               <View style={styles.scoreMain}>
-                <Text style={styles.scoreLabel}>점수</Text>
+                <Text style={styles.scoreLabel}>{t(language, 'score')}</Text>
                 <Text style={[styles.scoreValue, isMaster && { color: '#D97706' }, isExpert && !isMaster && { color: '#E63946' }]}>
                   {totalScore}
                 </Text>
                 <Text style={styles.scoreThreshold}> / {isMaster ? MASTER_THRESHOLD : EXPERT_THRESHOLD}</Text>
                 {isMaster ? (
                   <View style={[styles.expertBadge, { backgroundColor: '#D97706' }]}>
-                    <Text style={styles.expertBadgeText}>🏆 마스터</Text>
+                    <Text style={styles.expertBadgeText}>{t(language, 'masterBadge')}</Text>
                   </View>
                 ) : isExpert ? (
                   <View style={styles.expertBadge}>
-                    <Text style={styles.expertBadgeText}>고급 자동 전환</Text>
+                    <Text style={styles.expertBadgeText}>{t(language, 'expertAutoBadge')}</Text>
                   </View>
                 ) : null}
               </View>
@@ -705,7 +707,7 @@ const Game: React.FC<GameProps> = ({
             contentContainerStyle={styles.controlBar}
           >
             <View style={styles.inlineGroup}>
-              <Text style={styles.controlLabel}>모드</Text>
+              <Text style={styles.controlLabel}>{t(language, 'modeLabel')}</Text>
               <View style={styles.chipGroup}>
                 <TouchableOpacity
                   style={[styles.chip, vsAI && styles.chipActive]}
@@ -728,10 +730,10 @@ const Game: React.FC<GameProps> = ({
 
             {onSettings && (
               <View style={styles.inlineGroup}>
-                <Text style={styles.controlLabel}>설정</Text>
+                <Text style={styles.controlLabel}>{t(language, 'settingsLabel')}</Text>
                 <View style={styles.chipGroup}>
                   <TouchableOpacity style={styles.chip} onPress={onSettings}>
-                    <Text style={styles.chipText}>⚙️ 열기</Text>
+                    <Text style={styles.chipText}>{t(language, 'openSettings')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -768,7 +770,7 @@ const Game: React.FC<GameProps> = ({
         {aiThinking && vsAI && (
           <View style={styles.aiThinkingOverlay} pointerEvents="none">
             <ActivityIndicator size="small" color="#457B9D" />
-            <Text style={styles.aiThinkingText}>AI 생각 중...</Text>
+            <Text style={styles.aiThinkingText}>{t(language, 'aiThinking')}</Text>
           </View>
         )}
       </View>
