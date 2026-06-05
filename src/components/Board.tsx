@@ -171,7 +171,7 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
             {gridLines}
             <View
               pointerEvents="none"
-              style={[styles.centerDot, { left: BOARD_PADDING + boardCenterOffset, top: boardCenterOffset - BOARD_PADDING }]}
+              style={[styles.centerDot, { left: BOARD_PADDING + boardCenterOffset, top: BOARD_PADDING + boardCenterOffset }]}
             />
               {intersections}
           </View>
