@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { Audio } from 'expo-av';
 import Board from './Board';
 import GameStatus from './GameStatus';
 import Fireworks from './Fireworks';
 import VictoryPopup from './VictoryPopup';
 import { 
-  BOARD_SIZE, 
+  BOARD_SIZE,
+  TABLET_BOARD_SIZE,
   initializeBoard, 
   isValidMove, 
   checkWin, 
@@ -46,7 +47,9 @@ const Game: React.FC<GameProps> = ({
   bgMusicEnabled = true,
   bgMusicVolume = 0.2,
 }) => {
-  const [board, setBoard] = useState<number[][]>(initializeBoard());
+  const { width: screenWidth } = useWindowDimensions();
+  const activeBoardSize = screenWidth >= 600 ? TABLET_BOARD_SIZE : BOARD_SIZE;
+  const [board, setBoard] = useState<number[][]>(() => initializeBoard(activeBoardSize));
   const [currentPlayer, setCurrentPlayer] = useState<number>(1); // 1 for black, 2 for white
   const [winner, setWinner] = useState<number | null>(null);
   const [lastMove, setLastMove] = useState<{ row: number; col: number } | null>(null);
@@ -384,7 +387,7 @@ const Game: React.FC<GameProps> = ({
     const shouldAIStart = !forceHumanStart && vsAI && winner === AI_PLAYER;
     const nextStartingPlayer = shouldAIStart ? AI_PLAYER : HUMAN_PLAYER;
 
-    const newBoard = initializeBoard();
+    const newBoard = initializeBoard(activeBoardSize);
     setBoard(newBoard);
     setCurrentPlayer(nextStartingPlayer);
     setWinner(null);
@@ -446,8 +449,9 @@ const Game: React.FC<GameProps> = ({
     const emptyPositions: {row: number, col: number}[] = [];
     
     // Find all empty positions
-    for (let row = 0; row < BOARD_SIZE; row++) {
-      for (let col = 0; col < BOARD_SIZE; col++) {
+    const currentBoardSize = currentBoard.length;
+    for (let row = 0; row < currentBoardSize; row++) {
+      for (let col = 0; col < currentBoardSize; col++) {
         if (isValidMove(currentBoard, row, col)) {
           emptyPositions.push({row, col});
         }
