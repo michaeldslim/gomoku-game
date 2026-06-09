@@ -7,7 +7,8 @@ import Fireworks from './Fireworks';
 import VictoryPopup from './VictoryPopup';
 import { 
   BOARD_SIZE,
-  TABLET_BOARD_SIZE,
+  TABLET_BOARD_PORTRAIT_SIZE,
+  TABLET_BOARD_LANDSCAPE_SIZE,
   initializeBoard, 
   isValidMove, 
   checkWin, 
@@ -47,8 +48,13 @@ const Game: React.FC<GameProps> = ({
   bgMusicEnabled = true,
   bgMusicVolume = 0.2,
 }) => {
-  const { width: screenWidth } = useWindowDimensions();
-  const activeBoardSize = screenWidth >= 600 ? TABLET_BOARD_SIZE : BOARD_SIZE;
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isTablet = Math.min(screenWidth, screenHeight) >= 600;
+  const isLandscape = screenWidth > screenHeight;
+  const isTabletLandscape = isTablet && isLandscape;
+  const activeBoardSize = isTablet
+    ? (isLandscape ? TABLET_BOARD_LANDSCAPE_SIZE : TABLET_BOARD_PORTRAIT_SIZE)
+    : BOARD_SIZE;
   const [board, setBoard] = useState<number[][]>(() => initializeBoard(activeBoardSize));
   const [currentPlayer, setCurrentPlayer] = useState<number>(1); // 1 for black, 2 for white
   const [winner, setWinner] = useState<number | null>(null);
@@ -614,170 +620,187 @@ const Game: React.FC<GameProps> = ({
   const seg1Fill = Math.min(1, totalScore / EXPERT_THRESHOLD);
   const seg2Fill = isExpert ? Math.min(1, (totalScore - EXPERT_THRESHOLD) / (MASTER_THRESHOLD - EXPERT_THRESHOLD)) : 0;
 
-  return (
-    <View style={styles.container}>
-      <GameStatus 
-        currentPlayer={currentPlayer} 
-        winner={winner} 
-        onRestart={handleRestart}
-        onUndo={handleUndo}
-        undoCount={undoCount}
-        onLeaderboard={onLeaderboard}
-        language={language}
-      />
+  // In landscape the board lives in the right 62% column
+  const boardColumnWidth = isTabletLandscape ? screenWidth * 0.62 : screenWidth;
 
-      {/* Score banner */}
-      <View style={styles.scoreBanner}>
-        <View style={styles.scoreBannerContent}>
-          <View style={[styles.scoreInfoBlock, showMoodTimer && styles.scoreInfoBlockNarrow]}>
-            {/* Header row: label + score + badges */}
-            <View style={styles.scoreRow}>
-              <View style={styles.scoreMain}>
-                <Text style={styles.scoreLabel}>{t(language, 'score')}</Text>
-                <Text style={[styles.scoreValue, isMaster && { color: '#D97706' }, isExpert && !isMaster && { color: '#E63946' }]}>
-                  {totalScore}
-                </Text>
-                <Text style={styles.scoreThreshold}> / {isMaster ? MASTER_THRESHOLD : EXPERT_THRESHOLD}</Text>
-                {isMaster ? (
-                  <View style={[styles.expertBadge, { backgroundColor: '#D97706' }]}>
-                    <Text style={styles.expertBadgeText}>{t(language, 'masterBadge')}</Text>
-                  </View>
-                ) : isExpert ? (
-                  <View style={styles.expertBadge}>
-                    <Text style={styles.expertBadgeText}>{t(language, 'expertAutoBadge')}</Text>
-                  </View>
-                ) : null}
-              </View>
-            </View>
+  // ── Reusable UI blocks ──────────────────────────────────────────────────────
 
-            {/* Two-segment bar */}
-            <View style={styles.scoreBarOuter}>
-              {/* Segment 1: 0 → 80 (80% width of total bar) */}
-              <View style={[styles.scoreBarSegment, { flex: 80 }]}>
-                <View style={styles.scoreBarTrack}>
-                  <View style={[styles.scoreBarFill, { width: `${seg1Fill * 100}%`, backgroundColor: '#457B9D' }]} />
+  const gameStatusBlock = (
+    <GameStatus
+      currentPlayer={currentPlayer}
+      winner={winner}
+      onRestart={handleRestart}
+      onUndo={handleUndo}
+      undoCount={undoCount}
+      onLeaderboard={onLeaderboard}
+      language={language}
+    />
+  );
+
+  const scoreBannerBlock = (
+    <View style={styles.scoreBanner}>
+      <View style={styles.scoreBannerContent}>
+        <View style={[styles.scoreInfoBlock, showMoodTimer && styles.scoreInfoBlockNarrow]}>
+          <View style={styles.scoreRow}>
+            <View style={styles.scoreMain}>
+              <Text style={styles.scoreLabel}>{t(language, 'score')}</Text>
+              <Text style={[styles.scoreValue, isMaster && { color: '#D97706' }, isExpert && !isMaster && { color: '#E63946' }]}>
+                {totalScore}
+              </Text>
+              <Text style={styles.scoreThreshold}> / {isMaster ? MASTER_THRESHOLD : EXPERT_THRESHOLD}</Text>
+              {isMaster ? (
+                <View style={[styles.expertBadge, { backgroundColor: '#D97706' }]}>
+                  <Text style={styles.expertBadgeText}>{t(language, 'masterBadge')}</Text>
                 </View>
-              </View>
-
-              {/* Milestone divider at 80 */}
-              <View style={styles.scoreMilestoneDivider} />
-
-              {/* Segment 2: 80 → 100 (20% width of total bar) */}
-              <View style={[styles.scoreBarSegment, { flex: 20 }]}>
-                <View style={[styles.scoreBarTrack, { backgroundColor: isExpert ? '#FECACA' : '#E5E7EB' }]}>
-                  <View style={[styles.scoreBarFill, { width: `${seg2Fill * 100}%`, backgroundColor: '#E63946' }]} />
+              ) : isExpert ? (
+                <View style={styles.expertBadge}>
+                  <Text style={styles.expertBadgeText}>{t(language, 'expertAutoBadge')}</Text>
                 </View>
-              </View>
-            </View>
-
-            {/* Milestone labels */}
-            <View style={styles.scoreLabelRow}>
-              <Text style={styles.scoreMilestoneLabel}>0</Text>
-              <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', left: '78%' }]}>80</Text>
-              <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', right: 0 }]}>100</Text>
+              ) : null}
             </View>
           </View>
-          {showMoodTimer && (
-            <View
-              style={[
-                styles.moodTimerBox,
-                { backgroundColor: isAITurnForTimer ? '#DBEAFE' : timerMood.bg },
-              ]}
-            >
-              <Text style={styles.moodEmoji}>{isAITurnForTimer ? '🦊' : timerMood.emoji}</Text>
-              <Text
-                style={[
-                  styles.moodTimeText,
-                  { color: isAITurnForTimer ? '#1E40AF' : timerMood.text },
-                ]}
-              >
-                {isAITurnForTimer ? 'AI' : `${timeLeft}s`}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
 
-      <View style={styles.switchesContainer}>
-        <View style={styles.controlsWrapper}>
-          <TouchableOpacity style={styles.arrowButton} onPress={scrollControlsToStart}>
-            <Text style={styles.arrowText}>‹</Text>
-          </TouchableOpacity>
-
-          <ScrollView
-            ref={controlsScrollRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.controlBar}
-          >
-            <View style={styles.inlineGroup}>
-              <Text style={styles.controlLabel}>{t(language, 'modeLabel')}</Text>
-              <View style={styles.chipGroup}>
-                <TouchableOpacity
-                  style={[styles.chip, vsAI && styles.chipActive]}
-                  onPress={() => {
-                    if (!vsAI) toggleAIMode();
-                  }}
-                >
-                  <Text style={[styles.chipText, vsAI && styles.chipTextActive]}>AI</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.chip, !vsAI && styles.chipActive]}
-                  onPress={() => {
-                    if (vsAI) toggleAIMode();
-                  }}
-                >
-                  <Text style={[styles.chipText, !vsAI && styles.chipTextActive]}>2P</Text>
-                </TouchableOpacity>
+          {/* Two-segment bar */}
+          <View style={styles.scoreBarOuter}>
+            <View style={[styles.scoreBarSegment, { flex: 80 }]}>
+              <View style={styles.scoreBarTrack}>
+                <View style={[styles.scoreBarFill, { width: `${seg1Fill * 100}%`, backgroundColor: '#457B9D' }]} />
               </View>
             </View>
-
-            {onSettings && (
-              <View style={styles.inlineGroup}>
-                <Text style={styles.controlLabel}>{t(language, 'settingsLabel')}</Text>
-                <View style={styles.chipGroup}>
-                  <TouchableOpacity style={styles.chip} onPress={onSettings}>
-                    <Text style={styles.chipText}>{t(language, 'openSettings')}</Text>
-                  </TouchableOpacity>
-                </View>
+            <View style={styles.scoreMilestoneDivider} />
+            <View style={[styles.scoreBarSegment, { flex: 20 }]}>
+              <View style={[styles.scoreBarTrack, { backgroundColor: isExpert ? '#FECACA' : '#E5E7EB' }]}>
+                <View style={[styles.scoreBarFill, { width: `${seg2Fill * 100}%`, backgroundColor: '#E63946' }]} />
               </View>
-            )}
-          </ScrollView>
+            </View>
+          </View>
 
-          <TouchableOpacity style={styles.arrowButton} onPress={scrollControlsToEnd}>
-            <Text style={styles.arrowText}>›</Text>
-          </TouchableOpacity>
+          <View style={styles.scoreLabelRow}>
+            <Text style={styles.scoreMilestoneLabel}>0</Text>
+            <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', left: '78%' }]}>80</Text>
+            <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', right: 0 }]}>100</Text>
+          </View>
         </View>
-      </View>
-      <View
-        style={styles.boardWrapper}
-        onLayout={e => {
-          const { width, height } = e.nativeEvent.layout;
-          setBoardSize({ width, height });
-        }}
-      >
-        <Board 
-          board={board} 
-          onCellPress={handleCellPress} 
-          lastMove={lastMove}
-          winningCells={winningCells}
-          centerTrigger={boardCenterTrigger}
-        />
-        <Fireworks visible={showFireworks} width={boardSize.width} height={boardSize.height} />
-        <VictoryPopup
-          visible={showVictoryPopup}
-          winner={winner}
-          text={popupText}
-          duration={3000}
-          language={language}
-        />
-        {aiThinking && vsAI && (
-          <View style={styles.aiThinkingOverlay} pointerEvents="none">
-            <ActivityIndicator size="small" color="#457B9D" />
-            <Text style={styles.aiThinkingText}>{t(language, 'aiThinking')}</Text>
+        {showMoodTimer && (
+          <View style={[styles.moodTimerBox, { backgroundColor: isAITurnForTimer ? '#DBEAFE' : timerMood.bg }]}>
+            <Text style={styles.moodEmoji}>{isAITurnForTimer ? '🦊' : timerMood.emoji}</Text>
+            <Text style={[styles.moodTimeText, { color: isAITurnForTimer ? '#1E40AF' : timerMood.text }]}>
+              {isAITurnForTimer ? 'AI' : `${timeLeft}s`}
+            </Text>
           </View>
         )}
       </View>
+    </View>
+  );
+
+  const controlsBlock = (
+    <View style={styles.switchesContainer}>
+      <View style={styles.controlsWrapper}>
+        <TouchableOpacity style={styles.arrowButton} onPress={scrollControlsToStart}>
+          <Text style={styles.arrowText}>‹</Text>
+        </TouchableOpacity>
+        <ScrollView
+          ref={controlsScrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.controlBar}
+        >
+          <View style={styles.inlineGroup}>
+            <Text style={styles.controlLabel}>{t(language, 'modeLabel')}</Text>
+            <View style={styles.chipGroup}>
+              <TouchableOpacity
+                style={[styles.chip, vsAI && styles.chipActive]}
+                onPress={() => { if (!vsAI) toggleAIMode(); }}
+              >
+                <Text style={[styles.chipText, vsAI && styles.chipTextActive]}>AI</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.chip, !vsAI && styles.chipActive]}
+                onPress={() => { if (vsAI) toggleAIMode(); }}
+              >
+                <Text style={[styles.chipText, !vsAI && styles.chipTextActive]}>2P</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {onSettings && (
+            <View style={styles.inlineGroup}>
+              <Text style={styles.controlLabel}>{t(language, 'settingsLabel')}</Text>
+              <View style={styles.chipGroup}>
+                <TouchableOpacity style={styles.chip} onPress={onSettings}>
+                  <Text style={styles.chipText}>{t(language, 'openSettings')}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </ScrollView>
+        <TouchableOpacity style={styles.arrowButton} onPress={scrollControlsToEnd}>
+          <Text style={styles.arrowText}>›</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const boardBlock = (
+    <View
+      style={styles.boardWrapper}
+      onLayout={e => {
+        const { width, height } = e.nativeEvent.layout;
+        setBoardSize({ width, height });
+      }}
+    >
+      <Board
+        board={board}
+        onCellPress={handleCellPress}
+        lastMove={lastMove}
+        winningCells={winningCells}
+        centerTrigger={boardCenterTrigger}
+        availableWidth={boardColumnWidth}
+      />
+      <Fireworks visible={showFireworks} width={boardSize.width} height={boardSize.height} />
+      <VictoryPopup
+        visible={showVictoryPopup}
+        winner={winner}
+        text={popupText}
+        duration={3000}
+        language={language}
+      />
+      {aiThinking && vsAI && (
+        <View style={styles.aiThinkingOverlay} pointerEvents="none">
+          <ActivityIndicator size="small" color="#457B9D" />
+          <Text style={styles.aiThinkingText}>{t(language, 'aiThinking')}</Text>
+        </View>
+      )}
+    </View>
+  );
+
+  // ── Landscape tablet: left sidebar + right board ────────────────────────────
+  if (isTabletLandscape) {
+    return (
+      <View style={[styles.container, styles.containerLandscape]}>
+        {/* Left sidebar: all controls */}
+        <View style={styles.landscapeSidebar}>
+          <ScrollView contentContainerStyle={styles.landscapeSidebarContent} showsVerticalScrollIndicator={false}>
+            {gameStatusBlock}
+            {scoreBannerBlock}
+            {controlsBlock}
+          </ScrollView>
+        </View>
+
+        {/* Right column: board only */}
+        <View style={styles.landscapeBoardColumn}>
+          {boardBlock}
+        </View>
+      </View>
+    );
+  }
+
+  // ── Portrait (phone or tablet) ──────────────────────────────────────────────
+  return (
+    <View style={styles.container}>
+      {gameStatusBlock}
+      {scoreBannerBlock}
+      {controlsBlock}
+      {boardBlock}
     </View>
   );
 };
@@ -791,6 +814,26 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
+  },
+  containerLandscape: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    paddingBottom: 0,
+  },
+  landscapeSidebar: {
+    flex: 38,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.85)',
+  },
+  landscapeSidebarContent: {
+    flexGrow: 1,
+    paddingBottom: 12,
+  },
+  landscapeBoardColumn: {
+    flex: 62,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scoreBanner: {
     alignSelf: 'stretch',

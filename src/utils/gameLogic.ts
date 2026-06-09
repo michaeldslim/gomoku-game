@@ -1,7 +1,8 @@
 // Game board size (phone default)
 export const BOARD_SIZE = 15;
 // Larger board for tablets
-export const TABLET_BOARD_SIZE = 23;
+export const TABLET_BOARD_PORTRAIT_SIZE = 23;
+export const TABLET_BOARD_LANDSCAPE_SIZE = 23;
 
 // Initialize an empty board
 export const initializeBoard = (size: number = BOARD_SIZE): number[][] => {

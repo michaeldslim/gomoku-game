@@ -9,21 +9,29 @@ interface BoardProps {
   lastMove?: { row: number; col: number } | null;
   winningCells?: { row: number; col: number }[] | null;
   centerTrigger?: number;
+  /** Override the width used for cell-size calculation (e.g. when board lives in a column) */
+  availableWidth?: number;
 }
 
 const BOARD_PADDING = 15;
 const OUTER_LINE_THICKNESS = 4;
 const TABLET_BREAKPOINT = 600;
 
-const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCells, centerTrigger = 0 }) => {
+const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCells, centerTrigger = 0, availableWidth }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const isTablet = screenWidth >= TABLET_BREAKPOINT;
+  const isTablet = Math.min(screenWidth, screenHeight) >= TABLET_BREAKPOINT;
+  const isLandscape = screenWidth > screenHeight;
   const boardSize = board.length > 0 ? board.length : BOARD_SIZE;
-  // On tablet, fit the board width exactly into the available screen width
+  // Use caller-supplied width if given (landscape split), otherwise full screen width
+  const effectiveWidth = availableWidth ?? screenWidth;
+  // On tablet, fit the board width exactly into the available column width
   const CELL_SIZE = isTablet
-    ? Math.min(48, Math.floor((screenWidth - 32 - BOARD_PADDING * 2) / (boardSize - 1)))
+    ? Math.min(48, Math.floor((effectiveWidth - 32 - BOARD_PADDING * 2) / (boardSize - 1)))
     : 30;
-  const maxBoardVisibleHeight = isTablet ? screenHeight * 0.85 : screenHeight * 0.55;
+  // In landscape the screen is short — use nearly all height; portrait caps at 55%
+  const maxBoardVisibleHeight = isTablet
+    ? (isLandscape ? screenHeight * 0.95 : screenHeight * 0.85)
+    : screenHeight * 0.55;
   const horizontalScrollRef = useRef<ScrollView | null>(null);
   const verticalScrollRef = useRef<ScrollView | null>(null);
   const hasAutoCenteredRef = useRef(false);
