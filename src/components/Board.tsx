@@ -9,25 +9,37 @@ interface BoardProps {
   lastMove?: { row: number; col: number } | null;
   winningCells?: { row: number; col: number }[] | null;
   centerTrigger?: number;
+  /** Override the width used for cell-size calculation (e.g. when board lives in a column) */
+  availableWidth?: number;
 }
 
-const CELL_SIZE = 30;
 const BOARD_PADDING = 15;
 const OUTER_LINE_THICKNESS = 4;
+const TABLET_BREAKPOINT = 600;
 
-const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCells, centerTrigger = 0 }) => {
-  const { height: screenHeight } = useWindowDimensions();
+const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCells, centerTrigger = 0, availableWidth }) => {
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isTablet = Math.min(screenWidth, screenHeight) >= TABLET_BREAKPOINT;
+  const isLandscape = screenWidth > screenHeight;
+  const boardSize = board.length > 0 ? board.length : BOARD_SIZE;
+  // Use caller-supplied width if given (landscape split), otherwise full screen width
+  const effectiveWidth = availableWidth ?? screenWidth;
+  // On tablet, fit the board width exactly into the available column width
+  const CELL_SIZE = isTablet
+    ? Math.min(48, Math.floor((effectiveWidth - 32 - BOARD_PADDING * 2) / (boardSize - 1)))
+    : 30;
+  // In landscape the screen is short — use nearly all height; portrait caps at 55%
+  const maxBoardVisibleHeight = isTablet
+    ? (isLandscape ? screenHeight * 0.95 : screenHeight * 0.85)
+    : screenHeight * 0.55;
   const horizontalScrollRef = useRef<ScrollView | null>(null);
   const verticalScrollRef = useRef<ScrollView | null>(null);
   const hasAutoCenteredRef = useRef(false);
   const [horizontalViewportWidth, setHorizontalViewportWidth] = useState(0);
   const [verticalViewportHeight, setVerticalViewportHeight] = useState(0);
-  // Reserve space for UI above the board (status bar, controls, etc.)
-  const maxBoardVisibleHeight = screenHeight * 0.55;
   const webNoOutlineStyle = Platform.OS === 'web'
     ? ({ outlineStyle: 'none', outlineWidth: 0 } as any)
     : null;
-  const boardSize = board.length > 0 ? board.length : BOARD_SIZE;
   const boardPixelSize = CELL_SIZE * (boardSize - 1) + BOARD_PADDING * 2;
   const centerLineIndex = Math.floor(boardSize / 2);
   const boardCenterOffset = centerLineIndex * CELL_SIZE;
@@ -47,7 +59,7 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
       horizontalScrollRef.current?.scrollTo({ x: targetX, y: 0, animated });
       verticalScrollRef.current?.scrollTo({ x: 0, y: targetY, animated });
     },
-    [boardPixelSize, horizontalViewportWidth, verticalViewportHeight]
+    [boardPixelSize, horizontalViewportWidth, verticalViewportHeight, CELL_SIZE]
   );
 
   useEffect(() => {
@@ -117,7 +129,7 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
     }
 
     return lines;
-  }, [boardSize]);
+  }, [boardSize, CELL_SIZE]);
 
   // Create intersection points where stones can be placed (memoized).
   // Note: outermost border intersections are intentionally non-playable.
@@ -136,6 +148,10 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
               style={[styles.intersection, {
                 left: BOARD_PADDING + col * CELL_SIZE,
                 top: BOARD_PADDING + row * CELL_SIZE,
+                width: CELL_SIZE,
+                height: CELL_SIZE,
+                marginLeft: -CELL_SIZE / 2,
+                marginTop: -CELL_SIZE / 2,
               }, webNoOutlineStyle]}
             onPress={() => onCellPress(row, col)}
             activeOpacity={1}
@@ -147,7 +163,7 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
     }
 
     return points;
-  }, [board, boardSize, lastMove, winningSet, onCellPress, webNoOutlineStyle]);
+  }, [board, boardSize, CELL_SIZE, lastMove, winningSet, onCellPress, webNoOutlineStyle]);
 
   return (
     <View style={styles.container}>
@@ -229,16 +245,11 @@ const styles = StyleSheet.create({
   },
   intersection: {
     position: 'absolute',
-    width: CELL_SIZE,
-    height: CELL_SIZE,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 5,
     borderWidth: 0,
     borderColor: 'transparent',
-    // Offset to center the touch area on the intersection
-    marginLeft: -CELL_SIZE/2,
-    marginTop: -CELL_SIZE/2,
   },
 });
 

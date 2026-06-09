@@ -1,4 +1,4 @@
-import { BOARD_SIZE, checkWin, isValidMove } from './gameLogic';
+import { checkWin, isValidMove } from './gameLogic';
 
 const directions = [
   [1, 0],
@@ -47,6 +47,7 @@ const evaluateLine = (
   dx: number,
   dy: number
 ): { count: number; openEnds: number } => {
+  const size = board.length;
   let count = 1;
   let openEnds = 0;
 
@@ -55,7 +56,7 @@ const evaluateLine = (
     const newRow = row + i * dx;
     const newCol = col + i * dy;
 
-    if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) {
+    if (newRow < 0 || newRow >= size || newCol < 0 || newCol >= size) {
       break;
     }
 
@@ -74,7 +75,7 @@ const evaluateLine = (
     const newRow = row - i * dx;
     const newCol = col - i * dy;
 
-    if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) {
+    if (newRow < 0 || newRow >= size || newCol < 0 || newCol >= size) {
       break;
     }
 
@@ -92,12 +93,13 @@ const evaluateLine = (
 };
 
 const getCandidateMoves = (board: number[][]): { row: number; col: number }[] => {
+  const size = board.length;
   const candidates: { row: number; col: number }[] = [];
   const seen = new Set<string>();
   let hasStone = false;
 
-  for (let row = 0; row < BOARD_SIZE; row++) {
-    for (let col = 0; col < BOARD_SIZE; col++) {
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
       if (board[row][col] !== 0) {
         hasStone = true;
         for (let dr = -2; dr <= 2; dr++) {
@@ -118,7 +120,7 @@ const getCandidateMoves = (board: number[][]): { row: number; col: number }[] =>
   }
 
   if (!hasStone) {
-    const center = Math.floor(BOARD_SIZE / 2);
+    const center = Math.floor(size / 2);
     return [{ row: center, col: center }];
   }
 
@@ -129,9 +131,10 @@ const getCandidateMoves = (board: number[][]): { row: number; col: number }[] =>
 // Uses in-place mutation + restore instead of copying the board per cell,
 // reducing this from O(n^4) to O(n^2).
 const countWinThreats = (board: number[][], player: number): number => {
+  const size = board.length;
   let count = 0;
-  for (let r = 0; r < BOARD_SIZE; r++) {
-    for (let c = 0; c < BOARD_SIZE; c++) {
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
       if (board[r][c] !== 0) continue;
       board[r][c] = player;
       if (checkWin(board, r, c, player)) count++;
@@ -175,8 +178,9 @@ const evaluatePosition = (board: number[][], row: number, col: number, aiPlayer:
   score += Math.floor(Math.random() * 3);
   
   // Prefer center positions
-  const centerDistance = Math.abs(row - BOARD_SIZE / 2) + Math.abs(col - BOARD_SIZE / 2);
-  score += (BOARD_SIZE - centerDistance) * 2;
+  const size = board.length;
+  const centerDistance = Math.abs(row - size / 2) + Math.abs(col - size / 2);
+  score += (size - centerDistance) * 2;
   
   return score;
 };
@@ -222,8 +226,9 @@ const evaluateExpertMove = (
   }
 
   score += Math.floor(Math.random() * 3);
-  const centerDistance = Math.abs(row - BOARD_SIZE / 2) + Math.abs(col - BOARD_SIZE / 2);
-  score += (BOARD_SIZE - centerDistance) * 2;
+  const expertSize = board.length;
+  const centerDistance = Math.abs(row - expertSize / 2) + Math.abs(col - expertSize / 2);
+  score += (expertSize - centerDistance) * 2;
 
   return score;
 };
