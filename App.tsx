@@ -1,5 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import * as Device from 'expo-device';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import {
   ActivityIndicator,
   ScrollView,
@@ -20,6 +22,18 @@ import { Language, t } from './src/utils/i18n';
 type Screen = 'home' | 'game' | 'leaderboard' | 'settings';
 
 function AppContent() {
+  // Lock phones to portrait; let tablets rotate freely
+  useEffect(() => {
+    (async () => {
+      const deviceType = await Device.getDeviceTypeAsync();
+      if (deviceType === Device.DeviceType.TABLET) {
+        await ScreenOrientation.unlockAsync();
+      } else {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      }
+    })();
+  }, []);
+
   const [screen, setScreen] = useState<Screen>('home');
   const [startupScore, setStartupScore] = useState(0);
   const [isStartingGame, setIsStartingGame] = useState(false);

@@ -4,7 +4,7 @@
     "slug": "gomoku-game",
     "scheme": "gomoku-game",
     "version": "2.1.0",
-    "orientation": "default",
+    "orientation": "portrait",
     "icon": "./assets/icon-ios-square.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
