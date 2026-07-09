@@ -7,6 +7,7 @@ export interface Translations {
   leaderboardNav: string;
   settingsNav: string;
   loadingSettings: string;
+  appVersion: string;
 
   // Instructions
   instructionsTitle: string;
@@ -94,6 +95,7 @@ export const translations: Record<Language, Translations> = {
     leaderboardNav: '🏅 리더보드',
     settingsNav: '⚙️ 설정',
     loadingSettings: '설정 로딩 중...',
+    appVersion: '버전',
 
     // Instructions
     instructionsTitle: '게임 방법',
@@ -186,6 +188,7 @@ export const translations: Record<Language, Translations> = {
     leaderboardNav: '🏅 Leaderboard',
     settingsNav: '⚙️ Settings',
     loadingSettings: 'Loading settings...',
+    appVersion: 'Version',
 
     // Instructions
     instructionsTitle: 'How to Play',
