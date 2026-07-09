@@ -17,6 +17,7 @@ import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { addLeaderboardEntry, fetchStartupScore, startFreshRun } from './src/services/leaderboard';
 import { defaultUserSettings, fetchUserSettings, saveUserSettings, UserSettings } from './src/services/settings';
+import { APP_VERSION } from './src/constants/app';
 import { Language, t } from './src/utils/i18n';
 
 type Screen = 'home' | 'game' | 'leaderboard' | 'settings';
@@ -204,6 +205,10 @@ function AppContent() {
             {settingsLoaded ? t(lang, 'settingsNav') : t(lang, 'loadingSettings')}
           </Text>
         </TouchableOpacity>
+
+        <Text style={styles.versionText}>
+          {t(lang, 'appVersion')} {APP_VERSION}
+        </Text>
       </ScrollView>
 
       <StatusBar style="auto" />
@@ -306,5 +311,12 @@ const styles = StyleSheet.create({
     color: '#1D4E89',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  versionText: {
+    marginTop: 16,
+    marginBottom: 4,
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#9CA3AF',
   },
 });
