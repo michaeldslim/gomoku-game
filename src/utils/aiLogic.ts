@@ -9,6 +9,8 @@ const directions = [
 
 const WIN_SCORE = 100000000;
 const BLOCK_WIN_SCORE = 90000000;
+// Matches getDefensiveScore(4, openEnds >= 1) — open-four blocks must not lose to top-pool randomness.
+const URGENT_DEFENSE_SCORE = 800000;
 
 // keeping it in 1 (hardest) - 5 (easier) range for balance
 const INTERMEDIATE_TOP_POOL_SIZE = 4;
@@ -274,8 +276,14 @@ export function findBestMove(
       .map(({ row, col }) => ({ row, col, score: evaluatePosition(board, row, col, aiPlayer) }))
       .sort((a, b) => b.score - a.score);
 
-    if (scoredMoves[0] && scoredMoves[0].score >= BLOCK_WIN_SCORE) {
-      return { row: scoredMoves[0].row, col: scoredMoves[0].col };
+    const criticalMoves = scoredMoves.filter((move) => move.score >= BLOCK_WIN_SCORE);
+    if (criticalMoves.length > 0) {
+      return { row: criticalMoves[0].row, col: criticalMoves[0].col };
+    }
+
+    const urgentDefense = scoredMoves.filter((move) => move.score >= URGENT_DEFENSE_SCORE);
+    if (urgentDefense.length > 0) {
+      return { row: urgentDefense[0].row, col: urgentDefense[0].col };
     }
 
     const topPool = scoredMoves.slice(0, Math.min(resolvedIntermediateTopPoolSize, scoredMoves.length));
