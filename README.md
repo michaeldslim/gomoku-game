@@ -83,6 +83,36 @@ The easiest way to run the app is using Expo Go:
    npx expo build:ios
    ```
 
+## Testing Master Celebration (Dev)
+
+Use this to verify fireworks, the master popup, wow sound, and leaderboard reset without playing to 100 points.
+
+### Enable test mode
+
+In `src/constants/scoring.ts`:
+
+```typescript
+export const USE_TEST_MASTER_THRESHOLD = true;
+export const MASTER_SCORE_THRESHOLD = USE_TEST_MASTER_THRESHOLD ? 20 : 100;
+```
+
+Reload the app after saving. On the home screen, the version line should show `TEST master @ 20`.
+
+### How to test
+
+1. Start the app (e.g. `npx expo run:android` or `npx expo start`).
+2. Play in **AI mode**.
+3. Win **2 games in a row** (+10 points each → 20 points total).
+4. At 20 points you should see:
+   - Fireworks on the board
+   - Master popup (`참 잘했어요!` / `You did great!`)
+   - Wow sound
+   - Score reset to 0 and difficulty back to intermediate after ~4.5 seconds
+
+### Disable before release
+
+Set `USE_TEST_MASTER_THRESHOLD` back to `false` in `src/constants/scoring.ts` so master celebration requires **100 points** again.
+
 ## Project Structure
 
 ```
