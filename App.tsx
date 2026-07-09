@@ -18,6 +18,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import { addLeaderboardEntry, fetchStartupScore, startFreshRun } from './src/services/leaderboard';
 import { defaultUserSettings, fetchUserSettings, saveUserSettings, UserSettings } from './src/services/settings';
 import { APP_VERSION } from './src/constants/app';
+import { MASTER_SCORE_THRESHOLD, USE_TEST_MASTER_THRESHOLD } from './src/constants/scoring';
 import { Language, t } from './src/utils/i18n';
 
 type Screen = 'home' | 'game' | 'leaderboard' | 'settings';
@@ -208,6 +209,7 @@ function AppContent() {
 
         <Text style={styles.versionText}>
           {t(lang, 'appVersion')} {APP_VERSION}
+          {USE_TEST_MASTER_THRESHOLD ? ` · TEST master @ ${MASTER_SCORE_THRESHOLD}` : ''}
         </Text>
       </ScrollView>
 

@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MASTER_SCORE_THRESHOLD } from '../constants/scoring';
 
 const LEADERBOARD_STORAGE_KEY = 'gomoku_local_leaderboard_v1';
 const LEADERBOARD_MAX_ENTRIES = 50;
@@ -114,7 +115,7 @@ export async function fetchStartupScore(): Promise<number> {
   const latest = getLatestRecord(records);
 
   if (!latest) return 0;
-  if (latest.score >= 100) return 0;
+  if (latest.score >= MASTER_SCORE_THRESHOLD) return 0;
 
   return Math.max(0, Math.floor(latest.score));
 }
@@ -174,10 +175,11 @@ export async function startFreshRun(currentScore: number): Promise<void> {
 
   const rest = withoutRecord(records, latest);
 
-  if (isSameStartedAndPlayedDay(latest)) {
-    next = [finalizedLatest, ...rest];
-  } else {
+  // Master completion always starts a new active run so later wins don't overwrite the score.
+  if (normalizedScore >= MASTER_SCORE_THRESHOLD || !isSameStartedAndPlayedDay(latest)) {
     next = [newRun, finalizedLatest, ...rest];
+  } else {
+    next = [finalizedLatest, ...rest];
   }
 
   await writeRecords(next.slice(0, LEADERBOARD_MAX_ENTRIES));

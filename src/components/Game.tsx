@@ -16,6 +16,7 @@ import {
   getWinningCells,
 } from '../utils/gameLogic';
 import { findBestMove, AIDifficulty } from '../utils/aiLogic';
+import { MASTER_SCORE_THRESHOLD } from '../constants/scoring';
 import { t } from '../utils/i18n';
 
 const TIMER_DURATION = 15; // 15 seconds per turn
@@ -77,6 +78,7 @@ const Game: React.FC<GameProps> = ({
   const prevTotalScoreRef = useRef<number>(initialScore);
   const hasMountedScoreEffectRef = useRef<boolean>(false);
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
+  const [fireworksNonce, setFireworksNonce] = useState(0);
   const [showVictoryPopup, setShowVictoryPopup] = useState<boolean>(false);
   const [popupText, setPopupText] = useState<string | undefined>(undefined);
   const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -97,6 +99,23 @@ const Game: React.FC<GameProps> = ({
   const soundsReadyRef = useRef<boolean>(false);
   const soundsReadyPromiseRef = useRef<Promise<void> | null>(null);
   const resolveSoundsReadyRef = useRef<(() => void) | null>(null);
+  const masterCelebrationPendingRef = useRef(false);
+
+  const clearCelebrationTimeout = () => {
+    if (popupTimeoutRef.current) {
+      clearTimeout(popupTimeoutRef.current);
+      popupTimeoutRef.current = null;
+    }
+  };
+
+  const launchFireworks = () => {
+    setFireworksNonce((n) => n + 1);
+    setShowFireworks(true);
+  };
+
+  const dismissFireworks = () => {
+    setShowFireworks(false);
+  };
 
   if (!soundsReadyPromiseRef.current) {
     soundsReadyPromiseRef.current = new Promise<void>((resolve) => {
@@ -288,7 +307,7 @@ const Game: React.FC<GameProps> = ({
         const shouldPlayLose = vsAI && winner === AI_PLAYER;
         const soundToPlay = shouldPlayLose
           ? loseSoundRef.current
-          : totalScore >= 100
+          : totalScore >= MASTER_SCORE_THRESHOLD
           ? wowSoundRef.current
           : winSoundRef.current;
 
@@ -321,8 +340,11 @@ const Game: React.FC<GameProps> = ({
         const gained = Math.max(0, 10 - undosUsedThisGameRef.current);
         setTotalScore(prev => {
           // Clamp gain to what's actually remaining so displayed gain = actual delta
-          const actualGained = Math.min(gained, 100 - prev);
+          const actualGained = Math.min(gained, MASTER_SCORE_THRESHOLD - prev);
           const next = prev + actualGained;
+          if (next >= MASTER_SCORE_THRESHOLD && prev < MASTER_SCORE_THRESHOLD) {
+            masterCelebrationPendingRef.current = true;
+          }
           if (next >= 80) {
             setAiDifficulty('expert');
           }
@@ -400,6 +422,11 @@ const Game: React.FC<GameProps> = ({
     setWinningCells(null);
     setLastMove(null);
     lastPlayedWinnerRef.current = null;
+    clearCelebrationTimeout();
+    dismissFireworks();
+    setShowVictoryPopup(false);
+    setPopupText(undefined);
+    masterCelebrationPendingRef.current = false;
     setBoardHistory([]);
     setUndoCount(3);
     undosUsedThisGameRef.current = 0;
@@ -519,29 +546,22 @@ const Game: React.FC<GameProps> = ({
     setTimerActive(timerEnabled && !(vsAI && currentPlayer === AI_PLAYER) && winner === null);
   }, [currentPlayer, winner, timerEnabled]);
 
-  // Trigger fireworks on each human win
+  // Trigger fireworks on each human win (regular wins; master handled below)
   useEffect(() => {
     if (winner !== HUMAN_PLAYER) return;
-    // If score just hit 100, the score-100 effect handles fireworks (4.5 s)
-    if (totalScore >= 100) return;
-    if (popupTimeoutRef.current) {
-      clearTimeout(popupTimeoutRef.current);
-      popupTimeoutRef.current = null;
-    }
-    setShowFireworks(true);
+    if (totalScore >= MASTER_SCORE_THRESHOLD || masterCelebrationPendingRef.current) return;
+    clearCelebrationTimeout();
+    launchFireworks();
     setShowVictoryPopup(true);
     popupTimeoutRef.current = setTimeout(() => {
-      setShowFireworks(false);
+      dismissFireworks();
       setShowVictoryPopup(false);
       popupTimeoutRef.current = null;
     }, 3000);
     return () => {
-      if (popupTimeoutRef.current) {
-        clearTimeout(popupTimeoutRef.current);
-        popupTimeoutRef.current = null;
-      }
+      clearCelebrationTimeout();
     };
-  }, [winner]);
+  }, [winner, totalScore]);
 
   // Show loss popup when AI wins
   useEffect(() => {
@@ -563,27 +583,38 @@ const Game: React.FC<GameProps> = ({
     };
   }, [winner]);
 
-  // Trigger fireworks when score first reaches 100; sync score to DB
+  // Trigger fireworks when score first reaches master threshold; sync score to DB
   useEffect(() => {
     if (!hasMountedScoreEffectRef.current) {
       hasMountedScoreEffectRef.current = true;
+      prevTotalScoreRef.current = totalScore;
       return;
     }
-    if (totalScore >= 100 && prevTotalScoreRef.current < 100) {
-      if (popupTimeoutRef.current) {
-        clearTimeout(popupTimeoutRef.current);
-        popupTimeoutRef.current = null;
-      }
-      setShowFireworks(true);
+
+    const crossedMaster =
+      masterCelebrationPendingRef.current ||
+      (totalScore >= MASTER_SCORE_THRESHOLD && prevTotalScoreRef.current < MASTER_SCORE_THRESHOLD);
+
+    if (crossedMaster && totalScore >= MASTER_SCORE_THRESHOLD) {
+      masterCelebrationPendingRef.current = false;
+      clearCelebrationTimeout();
+      launchFireworks();
       setPopupText(t(language, 'scoreGreat'));
       setShowVictoryPopup(true);
       popupTimeoutRef.current = setTimeout(() => {
-        setShowFireworks(false);
-        setShowVictoryPopup(false);
-        setPopupText(undefined);
-        setTotalScore(0);
-        setAiDifficulty('intermediate');
-        popupTimeoutRef.current = null;
+        void (async () => {
+          try {
+            await onStartFreshRun?.(MASTER_SCORE_THRESHOLD);
+          } catch {
+            // Ignore leaderboard sync errors; still reset UI
+          }
+          dismissFireworks();
+          setShowVictoryPopup(false);
+          setPopupText(undefined);
+          setTotalScore(0);
+          setAiDifficulty('intermediate');
+          popupTimeoutRef.current = null;
+        })();
       }, 4500);
       // Play wow sound
       (async () => {
@@ -602,10 +633,9 @@ const Game: React.FC<GameProps> = ({
       onScoreUpdate(totalScore);
     }
     prevTotalScoreRef.current = totalScore;
-  }, [totalScore]);
+  }, [totalScore, onScoreUpdate, onStartFreshRun, language]);
 
-  const MASTER_THRESHOLD = 100;
-  const isMaster = totalScore >= MASTER_THRESHOLD;
+  const isMaster = totalScore >= MASTER_SCORE_THRESHOLD;
   const isExpert = totalScore >= EXPERT_THRESHOLD;
   const isAITurnForTimer = vsAI && currentPlayer === AI_PLAYER;
   const showMoodTimer = winner === null && timerEnabled;
@@ -618,7 +648,10 @@ const Game: React.FC<GameProps> = ({
     : { emoji: '😭', bg: '#FEE2E2', text: '#991B1B' };
   // Segment widths: segment1 is 80% of bar, segment2 is 20%
   const seg1Fill = Math.min(1, totalScore / EXPERT_THRESHOLD);
-  const seg2Fill = isExpert ? Math.min(1, (totalScore - EXPERT_THRESHOLD) / (MASTER_THRESHOLD - EXPERT_THRESHOLD)) : 0;
+  const seg2Fill =
+    isExpert && MASTER_SCORE_THRESHOLD > EXPERT_THRESHOLD
+      ? Math.min(1, (totalScore - EXPERT_THRESHOLD) / (MASTER_SCORE_THRESHOLD - EXPERT_THRESHOLD))
+      : 0;
 
   // In landscape the board lives in the right 62% column
   const boardColumnWidth = isTabletLandscape ? screenWidth * 0.62 : screenWidth;
@@ -647,7 +680,7 @@ const Game: React.FC<GameProps> = ({
               <Text style={[styles.scoreValue, isMaster && { color: '#D97706' }, isExpert && !isMaster && { color: '#E63946' }]}>
                 {totalScore}
               </Text>
-              <Text style={styles.scoreThreshold}> / {isMaster ? MASTER_THRESHOLD : EXPERT_THRESHOLD}</Text>
+              <Text style={styles.scoreThreshold}> / {isMaster ? MASTER_SCORE_THRESHOLD : EXPERT_THRESHOLD}</Text>
               {isMaster ? (
                 <View style={[styles.expertBadge, { backgroundColor: '#D97706' }]}>
                   <Text style={styles.expertBadgeText}>{t(language, 'masterBadge')}</Text>
@@ -678,7 +711,7 @@ const Game: React.FC<GameProps> = ({
           <View style={styles.scoreLabelRow}>
             <Text style={styles.scoreMilestoneLabel}>0</Text>
             <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', left: '78%' }]}>80</Text>
-            <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', right: 0 }]}>100</Text>
+            <Text style={[styles.scoreMilestoneLabel, { position: 'absolute', right: 0 }]}>{MASTER_SCORE_THRESHOLD}</Text>
           </View>
         </View>
         {showMoodTimer && (
@@ -756,12 +789,17 @@ const Game: React.FC<GameProps> = ({
         centerTrigger={boardCenterTrigger}
         availableWidth={boardColumnWidth}
       />
-      <Fireworks visible={showFireworks} width={boardSize.width} height={boardSize.height} />
+      <Fireworks
+        key={fireworksNonce}
+        visible={showFireworks}
+        width={boardSize.width}
+        height={boardSize.height}
+      />
       <VictoryPopup
         visible={showVictoryPopup}
         winner={winner}
         text={popupText}
-        duration={3000}
+        duration={popupText ? 4500 : 3000}
         language={language}
       />
       {aiThinking && vsAI && (
