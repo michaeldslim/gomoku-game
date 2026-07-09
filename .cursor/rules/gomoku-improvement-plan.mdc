@@ -1,0 +1,78 @@
+---
+description: Gomoku game improvement backlog — UI, AI, gameplay, and infra
+alwaysApply: false
+---
+
+# Gomoku Improvement Plan (v2.1.1 audit)
+
+Last reviewed: 2026-07-08. Core features work; items below are polish, bugs, and future enhancements.
+
+**Notation:** `P0` = **Phase 0**, `P1` = **Phase 1**, … `P4` = **Phase 4**. Phases are ordered by priority (Phase 0 first).
+
+## Phase 0 (P0) — Bugs / Correctness
+
+| # | Area | Issue | Suggested fix |
+|---|------|-------|---------------|
+| 1 | Leaderboard | `fetchStartupScore`, `addLeaderboardEntry`, `startFreshRun` use `records[0]` without sorting. Insert order ≠ highest score or most recent. | Add `getLatestRecord(records)` that sorts by `updatedAt` desc (or score desc for startup) and use everywhere. |
+| 2 | Gameplay | Score hits 100 → resets to 0 in UI but does not call `onStartFreshRun` / `startFreshRun`. Leaderboard run may stay stale. | On master celebration timeout, call `onStartFreshRun?.(100)` before reset. |
+| 3 | Gameplay | Tablet rotation changes `activeBoardSize` (15↔23) but board state is only resized on restart. Mid-game rotation can desync board dimensions. | `useEffect` on `activeBoardSize`: warn user or auto-restart with confirmation. |
+| 4 | Defaults | `Game.tsx` defaults `bgMusicEnabled=true`; `settings.ts` defaults `false`. First launch before settings load plays music unexpectedly. | Align defaults — prefer settings default (`false`) in Game props. |
+| 5 | Docs | `gameLogic.ts` / `Board.tsx` comments contradict code (border playable vs non-playable). | Delete stale comments; code allows all cells. |
+
+## Phase 1 (P1) — UI / UX
+
+| # | Area | Issue | Suggested fix |
+|---|------|-------|---------------|
+| 6 | Home | No language toggle on intro; must open Settings. | Add KO/EN chips on home header (like old InstructionScreen toggle). |
+| 7 | Home | Version not visible (requested). | Show `v{version}` footer on intro — **done in App.tsx**. |
+| 8 | Settings | No app version / runtime info for support. | Show APP_VERSION + runtimeVersion at bottom of Settings. |
+| 9 | Leaderboard | Nickname stored in settings but not shown per entry; only a top card. | Save `userHandle` snapshot per run; display on each row. |
+| 10 | Game | Undo reverts only the human move, not the following AI reply. Players expect "take back last turn pair." | Option A: save snapshot before AI move too; Option B: label button "무르기 (내 수)" to set expectation. |
+| 11 | Game | Timer expiry places a random stone with no warning. | Flash countdown color + optional 3-2-1 overlay before auto-move. |
+| 12 | Game | `Game.tsx` is ~1050 lines — hard to maintain. | Extract hooks: `useGameSounds`, `useGameTimer`, `useScoreProgression`. |
+| 13 | README | Describes v1 feature set only (no AI, leaderboard, tablet, i18n). | Rewrite Features + Project Structure sections. |
+
+## Phase 2 (P2) — AI Logic
+
+| # | Area | Issue | Suggested fix |
+|---|------|-------|---------------|
+| 14 | Intermediate | Open-four / double-threat blocks can be missed when not in top pool (only immediate win/block is forced). | After scoring, force-pick any move with `score >= BLOCK_WIN_SCORE` before random top-pool pick. |
+| 15 | Expert | `countWinThreats` is O(n²) per candidate; 23×23 board × many candidates may lag on low-end devices. | Cache threats per board hash, or limit fork check to top-N scored candidates. |
+| 16 | Expert | `Math.random() * 3` jitter can break tie-breaking on equal critical moves. | Remove jitter when `score >= 40_000_000` (fork tier). |
+| 17 | AI depth | Heuristic only — no look-ahead. Expert Hard (top-1) still beatable by strong players. | Optional depth-2 minimax for Expert Hard only; cap candidates to top 8. |
+| 18 | Opening | AI always responds heuristically; no opening book. | Add 5–10 common opening responses near center for move 1–3. |
+
+## Phase 3 (P3) — Gameplay / Progression
+
+| # | Area | Issue | Suggested fix |
+|---|------|-------|---------------|
+| 19 | Scoring | Undo penalty is opaque (max gain = 10 − undos used). | Show "+X" gain preview on win popup. |
+| 20 | Expert switch | Auto-switch at 80 is silent mid-run. | Toast/badge: "Expert mode activated" when `setAiDifficulty('expert')` fires. |
+| 21 | 2P mode | Score bar and expert progression shown in local 2P — irrelevant. | Hide score banner when `vsAI === false`. |
+| 22 | Draw | No special UI for draws (only status text). | Reuse VictoryPopup with draw styling. |
+
+## Phase 4 (P4) — Infra / Release
+
+| # | Area | Issue | Suggested fix |
+|---|------|-------|---------------|
+| 23 | OTA | `expo-updates` installed but App never checks for updates. | Add startup `Updates.checkForUpdateAsync()` + prompt to reload. |
+| 24 | Versioning | `package.json`, `app.json`, `runtimeVersion` synced manually. | Extend `bump-runtime.js` to also bump `package.json` version. |
+| 25 | Tests | No unit tests for `gameLogic`, `aiLogic`, leaderboard. | Add Jest tests for win detection, valid moves, AI forced block. |
+| 26 | CI | GitHub Action only builds Docker image; no TS/lint/test gate. | Add `npm test` + `tsc --noEmit` job on PR. |
+
+## Suggested implementation order
+
+1. **Phase 0 (P0)** items 1, 2, 4 — data correctness + default alignment
+2. **Phase 1 (P1)** items 6, 8, 10 — UX quick wins
+3. **Phase 2 (P2)** items 14, 16 — AI reliability
+4. **Phase 4 (P4)** items 23, 25 — OTA + tests
+5. Remaining Phase 1–3 items as time allows
+
+## Files to touch (reference)
+
+- `src/services/leaderboard.ts` — Phase 0 / P0-1
+- `src/components/Game.tsx` — Phase 0 / P0-2/3/4, Phase 1 / P1-10/11/12, Phase 3 / P3-19/20/21
+- `src/utils/aiLogic.ts` — Phase 2 / P2-14/15/16/17/18
+- `App.tsx` — Phase 1 / P1-7 (version footer)
+- `src/utils/i18n.ts` — new strings
+- `README.md` — Phase 1 / P1-13
