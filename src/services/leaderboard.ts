@@ -37,6 +37,25 @@ const isSameStartedAndPlayedDay = (record: LocalLeaderboardRecord): boolean => {
   return formatDate(record.createdAt) === formatDate(record.updatedAt);
 };
 
+const recordUpdatedAtMs = (record: LocalLeaderboardRecord): number => {
+  const ts = new Date(record.updatedAt).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+};
+
+/** Active run = most recently played entry (by updatedAt), not array index. */
+const getLatestRecord = (records: LocalLeaderboardRecord[]): LocalLeaderboardRecord | undefined => {
+  if (records.length === 0) return undefined;
+
+  return records.reduce((latest, current) =>
+    recordUpdatedAtMs(current) > recordUpdatedAtMs(latest) ? current : latest
+  );
+};
+
+const withoutRecord = (
+  records: LocalLeaderboardRecord[],
+  target: LocalLeaderboardRecord
+): LocalLeaderboardRecord[] => records.filter((record) => record.id !== target.id);
+
 const readRecords = async (): Promise<LocalLeaderboardRecord[]> => {
   const raw = await AsyncStorage.getItem(LEADERBOARD_STORAGE_KEY);
   if (!raw) return [];
@@ -92,7 +111,7 @@ export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
 
 export async function fetchStartupScore(): Promise<number> {
   const records = await readRecords();
-  const latest = records[0];
+  const latest = getLatestRecord(records);
 
   if (!latest) return 0;
   if (latest.score >= 100) return 0;
@@ -108,14 +127,15 @@ export async function addLeaderboardEntry(score: number): Promise<void> {
   if (score <= 0) return;
 
   const records = await readRecords();
-  const latest = records[0];
+  const latest = getLatestRecord(records);
   const now = new Date().toISOString();
 
   let next: LocalLeaderboardRecord[];
 
   // Overwrite latest whenever started date and last played date are the same.
   if (latest && isSameStartedAndPlayedDay(latest)) {
-    next = [{ ...latest, score, updatedAt: now }, ...records.slice(1)];
+    const updated: LocalLeaderboardRecord = { ...latest, score, updatedAt: now };
+    next = [updated, ...withoutRecord(records, latest)];
   } else {
     // Otherwise, create a new run entry for the new score.
     const id = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
@@ -129,7 +149,7 @@ export async function addLeaderboardEntry(score: number): Promise<void> {
 
 export async function startFreshRun(currentScore: number): Promise<void> {
   const records = await readRecords();
-  const latest = records[0];
+  const latest = getLatestRecord(records);
   const now = new Date().toISOString();
   const normalizedScore = Math.max(0, Math.floor(currentScore));
 
@@ -152,10 +172,12 @@ export async function startFreshRun(currentScore: number): Promise<void> {
     updatedAt: now,
   };
 
+  const rest = withoutRecord(records, latest);
+
   if (isSameStartedAndPlayedDay(latest)) {
-    next = [finalizedLatest, ...records.slice(1)];
+    next = [finalizedLatest, ...rest];
   } else {
-    next = [newRun, finalizedLatest, ...records.slice(1)];
+    next = [newRun, finalizedLatest, ...rest];
   }
 
   await writeRecords(next.slice(0, LEADERBOARD_MAX_ENTRIES));
