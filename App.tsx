@@ -208,7 +208,7 @@ function AppContent() {
         </TouchableOpacity>
 
         <Text style={styles.versionText}>
-          {t(lang, 'appVersion')} {APP_VERSION}
+          {t(lang, 'appVersion')}{APP_VERSION}
           {USE_TEST_MASTER_THRESHOLD ? ` · TEST master @ ${MASTER_SCORE_THRESHOLD}` : ''}
         </Text>
       </ScrollView>

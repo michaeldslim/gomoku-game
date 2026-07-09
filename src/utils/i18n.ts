@@ -95,7 +95,7 @@ export const translations: Record<Language, Translations> = {
     leaderboardNav: '🏅 리더보드',
     settingsNav: '⚙️ 설정',
     loadingSettings: '설정 로딩 중...',
-    appVersion: '버전',
+    appVersion: 'v',
 
     // Instructions
     instructionsTitle: '게임 방법',
@@ -188,7 +188,7 @@ export const translations: Record<Language, Translations> = {
     leaderboardNav: '🏅 Leaderboard',
     settingsNav: '⚙️ Settings',
     loadingSettings: 'Loading settings...',
-    appVersion: 'Version',
+    appVersion: 'v',
 
     // Instructions
     instructionsTitle: 'How to Play',
