@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   versionText: {
-    marginTop: 16,
+    marginTop: 4,
     marginBottom: 4,
     textAlign: 'center',
     fontSize: 12,
