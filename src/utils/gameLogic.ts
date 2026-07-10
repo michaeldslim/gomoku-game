@@ -4,18 +4,28 @@ export const BOARD_SIZE = 15;
 export const TABLET_BOARD_PORTRAIT_SIZE = 23;
 export const TABLET_BOARD_LANDSCAPE_SIZE = 23;
 
+const TABLET_BREAKPOINT = 600;
+
+/** Board dimension for the current device layout (does not account for in-game rotation). */
+export const resolveBoardSize = (isTablet: boolean, isLandscape: boolean): number => {
+  if (!isTablet) return BOARD_SIZE;
+  return isLandscape ? TABLET_BOARD_LANDSCAPE_SIZE : TABLET_BOARD_PORTRAIT_SIZE;
+};
+
+/** Board dimension from window size — use once at game start / restart, not on every rotation. */
+export const resolveBoardSizeFromWindow = (width: number, height: number): number => {
+  const isTablet = Math.min(width, height) >= TABLET_BREAKPOINT;
+  return resolveBoardSize(isTablet, width > height);
+};
+
 // Initialize an empty board
 export const initializeBoard = (size: number = BOARD_SIZE): number[][] => {
   return Array(size).fill(0).map(() => Array(size).fill(0));
 };
 
-// Check if the move is valid (cell is empty)
-// A move is valid only if it's inside the playable inner area (not on the outermost border)
-// A move is valid if it's inside playable area: exclude top row (0) and left col (0),
-// but allow right/bottom edges (BOARD_SIZE-1).
+// Check if the move is valid (cell is empty and within board bounds)
 export const isValidMove = (board: number[][], row: number, col: number): boolean => {
   const size = board.length;
-  // Valid if within board bounds and empty. All edges are playable.
   if (row < 0 || row >= size || col < 0 || col >= size) return false;
   return board[row][col] === 0;
 };

@@ -132,7 +132,6 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
   }, [boardSize, CELL_SIZE]);
 
   // Create intersection points where stones can be placed (memoized).
-  // Note: outermost border intersections are intentionally non-playable.
   const intersections = React.useMemo(() => {
     const points: React.ReactNode[] = [];
 

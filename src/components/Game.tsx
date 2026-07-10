@@ -6,14 +6,12 @@ import GameStatus from './GameStatus';
 import Fireworks from './Fireworks';
 import VictoryPopup from './VictoryPopup';
 import { 
-  BOARD_SIZE,
-  TABLET_BOARD_PORTRAIT_SIZE,
-  TABLET_BOARD_LANDSCAPE_SIZE,
   initializeBoard, 
   isValidMove, 
   checkWin, 
   isBoardFull,
   getWinningCells,
+  resolveBoardSizeFromWindow,
 } from '../utils/gameLogic';
 import { findBestMove, AIDifficulty } from '../utils/aiLogic';
 import { MASTER_SCORE_THRESHOLD } from '../constants/scoring';
@@ -46,17 +44,17 @@ const Game: React.FC<GameProps> = ({
   intermediateTopPoolSize = 4,
   expertTopPool = 3,
   language = 'ko',
-  bgMusicEnabled = true,
+  bgMusicEnabled = false,
   bgMusicVolume = 0.2,
 }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isTablet = Math.min(screenWidth, screenHeight) >= 600;
   const isLandscape = screenWidth > screenHeight;
   const isTabletLandscape = isTablet && isLandscape;
-  const activeBoardSize = isTablet
-    ? (isLandscape ? TABLET_BOARD_LANDSCAPE_SIZE : TABLET_BOARD_PORTRAIT_SIZE)
-    : BOARD_SIZE;
-  const [board, setBoard] = useState<number[][]>(() => initializeBoard(activeBoardSize));
+  // Lock board size for the current game so tablet rotation does not resize mid-play.
+  const [board, setBoard] = useState<number[][]>(() =>
+    initializeBoard(resolveBoardSizeFromWindow(screenWidth, screenHeight)),
+  );
   const [currentPlayer, setCurrentPlayer] = useState<number>(1); // 1 for black, 2 for white
   const [winner, setWinner] = useState<number | null>(null);
   const [lastMove, setLastMove] = useState<{ row: number; col: number } | null>(null);
@@ -86,7 +84,9 @@ const Game: React.FC<GameProps> = ({
   const [boardSize, setBoardSize] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
   const [boardCenterTrigger, setBoardCenterTrigger] = useState(0);
   const aiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const boardRef = useRef<number[][]>(initializeBoard());
+  const boardRef = useRef<number[][]>(
+    initializeBoard(resolveBoardSizeFromWindow(screenWidth, screenHeight)),
+  );
   const currentPlayerRef = useRef<number>(1);
   const lastMoveRef = useRef<{ row: number; col: number } | null>(null);
   const controlsScrollRef = useRef<ScrollView | null>(null);
@@ -415,7 +415,8 @@ const Game: React.FC<GameProps> = ({
     const shouldAIStart = !forceHumanStart && vsAI && winner === AI_PLAYER;
     const nextStartingPlayer = shouldAIStart ? AI_PLAYER : HUMAN_PLAYER;
 
-    const newBoard = initializeBoard(activeBoardSize);
+    const nextBoardSize = resolveBoardSizeFromWindow(screenWidth, screenHeight);
+    const newBoard = initializeBoard(nextBoardSize);
     setBoard(newBoard);
     setCurrentPlayer(nextStartingPlayer);
     setWinner(null);
