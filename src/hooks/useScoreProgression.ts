@@ -64,9 +64,10 @@ export function useScoreProgression({
   };
 
   useEffect(() => {
-    if (initialScore >= EXPERT_THRESHOLD) {
-      setAiDifficulty('expert');
-    }
+    setTotalScore(initialScore);
+    prevTotalScoreRef.current = initialScore;
+    masterCelebrationPendingRef.current = false;
+    setAiDifficulty(initialScore >= EXPERT_THRESHOLD ? 'expert' : 'intermediate');
   }, [initialScore]);
 
   const awardHumanWin = useCallback(() => {

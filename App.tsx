@@ -60,6 +60,12 @@ function AppContent() {
     setScreen('leaderboard');
   }, []);
 
+  const handleLeaderboardBackFromGame = useCallback(async () => {
+    const score = await fetchStartupScore();
+    setStartupScore(score);
+    setScreen('game');
+  }, []);
+
   const goToSettings = useCallback((from: 'home' | 'game') => {
     settingsFromRef.current = from;
     setScreen('settings');
@@ -122,7 +128,7 @@ function AppContent() {
         {screen === 'leaderboard' && (
           <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
             <LeaderboardScreen
-              onBack={() => setScreen('game')}
+              onBack={() => void handleLeaderboardBackFromGame()}
               language={settings.language}
             />
           </View>
