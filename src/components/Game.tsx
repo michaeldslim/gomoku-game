@@ -1,24 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
-import { Audio } from 'expo-av';
 import Board from './Board';
 import GameStatus from './GameStatus';
 import Fireworks from './Fireworks';
 import VictoryPopup from './VictoryPopup';
-import { 
-  initializeBoard, 
-  isValidMove, 
-  checkWin, 
+import {
+  initializeBoard,
+  isValidMove,
+  checkWin,
   isBoardFull,
   getWinningCells,
   resolveBoardSizeFromWindow,
 } from '../utils/gameLogic';
-import { findBestMove, AIDifficulty } from '../utils/aiLogic';
+import { findBestMove } from '../utils/aiLogic';
 import { MASTER_SCORE_THRESHOLD } from '../constants/scoring';
+import { AI_PLAYER, EXPERT_THRESHOLD, HUMAN_PLAYER } from '../constants/game';
+import { useGameSounds } from '../hooks/useGameSounds';
+import { useGameTimer } from '../hooks/useGameTimer';
+import { useScoreProgression } from '../hooks/useScoreProgression';
 import { t } from '../utils/i18n';
-
-const TIMER_DURATION = 15; // 15 seconds per turn
-const EXPERT_THRESHOLD = 80;
 
 interface GameProps {
   initialScore?: number;
@@ -51,56 +51,69 @@ const Game: React.FC<GameProps> = ({
   const isTablet = Math.min(screenWidth, screenHeight) >= 600;
   const isLandscape = screenWidth > screenHeight;
   const isTabletLandscape = isTablet && isLandscape;
-  // Lock board size for the current game so tablet rotation does not resize mid-play.
+
   const [board, setBoard] = useState<number[][]>(() =>
     initializeBoard(resolveBoardSizeFromWindow(screenWidth, screenHeight)),
   );
-  const [currentPlayer, setCurrentPlayer] = useState<number>(1); // 1 for black, 2 for white
+  const [currentPlayer, setCurrentPlayer] = useState<number>(HUMAN_PLAYER);
   const [winner, setWinner] = useState<number | null>(null);
   const [lastMove, setLastMove] = useState<{ row: number; col: number } | null>(null);
   const [vsAI, setVsAI] = useState<boolean>(true);
   const [aiThinking, setAiThinking] = useState<boolean>(false);
-  const [timeLeft, setTimeLeft] = useState<number>(TIMER_DURATION);
-  const [timerActive, setTimerActive] = useState<boolean>(true);
-  const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>(
-    initialScore >= EXPERT_THRESHOLD ? 'expert' : 'intermediate'
-  );
   const [boardHistory, setBoardHistory] = useState<Array<{
     board: number[][];
     currentPlayer: number;
     lastMove: { row: number; col: number } | null;
   }>>([]);
   const [undoCount, setUndoCount] = useState<number>(3);
-  const [totalScore, setTotalScore] = useState<number>(initialScore);
   const undosUsedThisGameRef = useRef<number>(0);
-  const prevTotalScoreRef = useRef<number>(initialScore);
-  const hasMountedScoreEffectRef = useRef<boolean>(false);
-  const [showFireworks, setShowFireworks] = useState<boolean>(false);
-  const [fireworksNonce, setFireworksNonce] = useState(0);
-  const [showVictoryPopup, setShowVictoryPopup] = useState<boolean>(false);
-  const [popupText, setPopupText] = useState<string | undefined>(undefined);
-  const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [winningCells, setWinningCells] = useState<{ row: number; col: number }[] | null>(null);
   const [boardSize, setBoardSize] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
   const [boardCenterTrigger, setBoardCenterTrigger] = useState(0);
+
   const aiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const boardRef = useRef<number[][]>(
     initializeBoard(resolveBoardSizeFromWindow(screenWidth, screenHeight)),
   );
-  const currentPlayerRef = useRef<number>(1);
+  const currentPlayerRef = useRef<number>(HUMAN_PLAYER);
   const lastMoveRef = useRef<{ row: number; col: number } | null>(null);
   const controlsScrollRef = useRef<ScrollView | null>(null);
-  const winSoundRef = useRef<Audio.Sound | null>(null);
-  const loseSoundRef = useRef<Audio.Sound | null>(null);
-  const stoneSoundRef = useRef<Audio.Sound | null>(null);
-  const wowSoundRef = useRef<Audio.Sound | null>(null);
-  const bgMusicRef = useRef<Audio.Sound | null>(null);
-  const lastPlayedWinnerRef = useRef<number | null>(null);
-  const soundsReadyRef = useRef<boolean>(false);
-  const soundsReadyPromiseRef = useRef<Promise<void> | null>(null);
-  const resolveSoundsReadyRef = useRef<(() => void) | null>(null);
-  const masterCelebrationPendingRef = useRef(false);
   const undoGenerationRef = useRef(0);
+  const handleTimeUpRef = useRef<() => void>(() => {});
+
+  const {
+    totalScore,
+    aiDifficulty,
+    isMaster,
+    isExpert,
+    seg1Fill,
+    seg2Fill,
+    showFireworks,
+    fireworksNonce,
+    showVictoryPopup,
+    popupText,
+    awardHumanWin,
+    resetCelebration,
+  } = useScoreProgression({
+    initialScore,
+    language,
+    winner,
+    vsAI,
+    onScoreUpdate,
+    onStartFreshRun,
+    undosUsedThisGameRef,
+    playWowSound: () => playWowSoundRef.current(),
+  });
+
+  const playWowSoundRef = useRef<() => void>(() => {});
+  const { playStoneSound, playWowSound, resetWinnerSound } = useGameSounds({
+    bgMusicEnabled,
+    bgMusicVolume,
+    winner,
+    vsAI,
+    totalScore,
+  });
+  playWowSoundRef.current = playWowSound;
 
   const cancelPendingAI = () => {
     if (aiTimeoutRef.current) {
@@ -110,278 +123,92 @@ const Game: React.FC<GameProps> = ({
     setAiThinking(false);
   };
 
-  const clearCelebrationTimeout = () => {
-    if (popupTimeoutRef.current) {
-      clearTimeout(popupTimeoutRef.current);
-      popupTimeoutRef.current = null;
-    }
-  };
-
-  const launchFireworks = () => {
-    setFireworksNonce((n) => n + 1);
-    setShowFireworks(true);
-  };
-
-  const dismissFireworks = () => {
-    setShowFireworks(false);
-  };
-
-  if (!soundsReadyPromiseRef.current) {
-    soundsReadyPromiseRef.current = new Promise<void>((resolve) => {
-      resolveSoundsReadyRef.current = resolve;
-    });
-  }
-  
-  // Keep refs in sync with state so stale-closure callbacks can read the latest values
   useEffect(() => { boardRef.current = board; }, [board]);
   useEffect(() => { currentPlayerRef.current = currentPlayer; }, [currentPlayer]);
   useEffect(() => { lastMoveRef.current = lastMove; }, [lastMove]);
 
-  // AI is always player 2 (white)
-  const AI_PLAYER = 2;
-  const HUMAN_PLAYER = 1;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-
-        const winResult = await Audio.Sound.createAsync(
-          require('../../assets/sounds/win.mp3'),
-          { shouldPlay: false }
-        );
-        const loseResult = await Audio.Sound.createAsync(
-          require('../../assets/sounds/lose.mp3'),
-          { shouldPlay: false }
-        );
-        const stoneResult = await Audio.Sound.createAsync(
-          require('../../assets/sounds/stone.mp3'),
-          { shouldPlay: false }
-        );
-        const wowResult = await Audio.Sound.createAsync(
-          require('../../assets/sounds/wow.mp3'),
-          { shouldPlay: false }
-        );
-
-        if (cancelled) {
-          await winResult.sound.unloadAsync();
-          await loseResult.sound.unloadAsync();
-          await stoneResult.sound.unloadAsync();
-          await wowResult.sound.unloadAsync();
-          return;
-        }
-
-        winSoundRef.current = winResult.sound;
-        loseSoundRef.current = loseResult.sound;
-        stoneSoundRef.current = stoneResult.sound;
-        wowSoundRef.current = wowResult.sound;
-
-        try {
-          await stoneResult.sound.setVolumeAsync(0);
-          await stoneResult.sound.setPositionAsync(0);
-          await stoneResult.sound.playAsync();
-          // Give the audio session time to activate before pausing.
-          await new Promise(r => setTimeout(r, 300));
-          await stoneResult.sound.pauseAsync();
-        } catch {
-          // Ignore warm-up errors
-        } finally {
-          // Always restore volume and position regardless of warm-up success/failure
-          try {
-            await stoneResult.sound.setVolumeAsync(1);
-            await stoneResult.sound.setPositionAsync(0);
-          } catch {
-            // Ignore
-          }
-        }
-
-        soundsReadyRef.current = true;
-        resolveSoundsReadyRef.current?.();
-        resolveSoundsReadyRef.current = null;
-
-        // Load background music separately so a failure here never blocks
-        // the other sounds from playing.
-        try {
-          const bgResult = await Audio.Sound.createAsync(
-            require('../../assets/sounds/bm.mp3'),
-            { shouldPlay: bgMusicEnabled, isLooping: true, volume: bgMusicVolume }
-          );
-
-          if (cancelled) {
-            await bgResult.sound.stopAsync();
-            await bgResult.sound.unloadAsync();
-            return;
-          }
-
-          bgMusicRef.current = bgResult.sound;
-        } catch {
-          // Background music failed to load — other sounds still work
-        }
-      } catch {
-        // Ignore sound loading errors
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      (async () => {
-        try {
-          if (winSoundRef.current) {
-            await winSoundRef.current.unloadAsync();
-          }
-          if (loseSoundRef.current) {
-            await loseSoundRef.current.unloadAsync();
-          }
-          if (stoneSoundRef.current) {
-            await stoneSoundRef.current.unloadAsync();
-          }
-          if (wowSoundRef.current) {
-            await wowSoundRef.current.unloadAsync();
-          }
-          if (bgMusicRef.current) {
-            await bgMusicRef.current.stopAsync();
-            await bgMusicRef.current.unloadAsync();
-          }
-        } catch {
-          // Ignore unload errors
-        } finally {
-          winSoundRef.current = null;
-          loseSoundRef.current = null;
-          stoneSoundRef.current = null;
-          wowSoundRef.current = null;
-          bgMusicRef.current = null;
-          soundsReadyRef.current = false;
-          soundsReadyPromiseRef.current = null;
-          resolveSoundsReadyRef.current = null;
-        }
-      })();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (initialScore >= EXPERT_THRESHOLD) {
-      setAiDifficulty('expert');
-    }
-  }, [initialScore]);
-
-  // Sync background music enabled/volume with the live sound object
-  useEffect(() => {
-    (async () => {
-      try {
-        if (!bgMusicRef.current) return;
-        if (bgMusicEnabled) {
-          await bgMusicRef.current.setVolumeAsync(bgMusicVolume);
-          await bgMusicRef.current.playAsync();
-        } else {
-          await bgMusicRef.current.pauseAsync();
-        }
-      } catch {
-        // Ignore
-      }
-    })();
-  }, [bgMusicEnabled, bgMusicVolume]);
-
-  const playStoneSound = () => {
-    (async () => {
-      try {
-        if (!soundsReadyRef.current && soundsReadyPromiseRef.current) {
-          await soundsReadyPromiseRef.current;
-        }
-
-        if (!stoneSoundRef.current) return;
-
-        await stoneSoundRef.current.replayAsync();
-      } catch {
-        // Ignore playback errors
-      }
-    })();
-  };
-
-  useEffect(() => {
-    if (winner === null || winner === 0) {
-      lastPlayedWinnerRef.current = winner;
-      return;
-    }
-
-    if (lastPlayedWinnerRef.current === winner) {
-      return;
-    }
-
-    lastPlayedWinnerRef.current = winner;
-
-    (async () => {
-      try {
-        const shouldPlayLose = vsAI && winner === AI_PLAYER;
-        const soundToPlay = shouldPlayLose
-          ? loseSoundRef.current
-          : totalScore >= MASTER_SCORE_THRESHOLD
-          ? wowSoundRef.current
-          : winSoundRef.current;
-
-        if (!soundToPlay) return;
-
-        await soundToPlay.setPositionAsync(0);
-        await soundToPlay.playAsync();
-      } catch {
-        // Ignore playback errors
-      }
-    })();
-  }, [winner, vsAI]);
-
-  // Make a move and check for game end conditions
-  const makeMove = (row: number, col: number, player: number, boardState: number[][]) => {
-    // Create a new board with the move
-    const newBoard = boardState.map(r => [...r]);
+  const makeMove = useCallback((row: number, col: number, player: number, boardState: number[][]) => {
+    const newBoard = boardState.map((r) => [...r]);
     newBoard[row][col] = player;
 
     playStoneSound();
     setLastMove({ row, col });
-    
-    // Check for win
+
     if (checkWin(newBoard, row, col, player)) {
       setBoard(newBoard);
       setWinner(player);
       setWinningCells(getWinningCells(newBoard, row, col, player));
-      // Award score only when human wins vs AI
       if (vsAI && player === HUMAN_PLAYER) {
-        const gained = Math.max(0, 10 - undosUsedThisGameRef.current);
-        setTotalScore(prev => {
-          // Clamp gain to what's actually remaining so displayed gain = actual delta
-          const actualGained = Math.min(gained, MASTER_SCORE_THRESHOLD - prev);
-          const next = prev + actualGained;
-          if (next >= MASTER_SCORE_THRESHOLD && prev < MASTER_SCORE_THRESHOLD) {
-            masterCelebrationPendingRef.current = true;
-          }
-          if (next >= 80) {
-            setAiDifficulty('expert');
-          }
-          return next;
-        });
+        awardHumanWin();
       }
-      return true; // Game ended
+      return true;
     }
-    
-    // Check for draw
+
     if (isBoardFull(newBoard)) {
       setBoard(newBoard);
-      setWinner(0); // 0 represents a draw
-      return true; // Game ended
+      setWinner(0);
+      return true;
     }
-    
-    // Game continues
+
     setBoard(newBoard);
-    setCurrentPlayer(player === 1 ? 2 : 1);
-    return false; // Game continues
-  };
-  
-  // AI makes a move
-  const makeAIMove = () => {
+    setCurrentPlayer(player === HUMAN_PLAYER ? AI_PLAYER : HUMAN_PLAYER);
+    return false;
+  }, [vsAI, playStoneSound, awardHumanWin]);
+
+  const handleTimeUp = useCallback(() => {
+    const currentBoard = boardRef.current;
+    const player = currentPlayerRef.current;
+
+    if (vsAI && player === AI_PLAYER) {
+      return;
+    }
+
+    const emptyPositions: { row: number; col: number }[] = [];
+    const currentBoardSize = currentBoard.length;
+    for (let row = 0; row < currentBoardSize; row++) {
+      for (let col = 0; col < currentBoardSize; col++) {
+        if (isValidMove(currentBoard, row, col)) {
+          emptyPositions.push({ row, col });
+        }
+      }
+    }
+
+    if (emptyPositions.length > 0) {
+      const randomIndex = Math.floor(Math.random() * emptyPositions.length);
+      const { row, col } = emptyPositions[randomIndex];
+      setBoardHistory((prev) => [
+        ...prev,
+        { board: currentBoard.map((r) => [...r]), currentPlayer: player, lastMove: lastMoveRef.current },
+      ]);
+      makeMove(row, col, player, currentBoard);
+    } else {
+      setWinner(0);
+    }
+  }, [vsAI, makeMove]);
+
+  handleTimeUpRef.current = handleTimeUp;
+
+  const {
+    timeLeft,
+    isAITurnForTimer,
+    showMoodTimer,
+    showTimerWarning,
+    timerMood,
+    resetTimerForTurn,
+    pauseTimer,
+  } = useGameTimer({
+    timerEnabled,
+    winner,
+    vsAI,
+    currentPlayer,
+    aiThinking,
+    onTimeUp: () => handleTimeUpRef.current(),
+  });
+
+  const makeAIMove = useCallback(() => {
     const turnToken = undoGenerationRef.current;
     setAiThinking(true);
 
-    // Add a small delay to simulate AI "thinking"
     aiTimeoutRef.current = setTimeout(() => {
       aiTimeoutRef.current = null;
       if (turnToken !== undoGenerationRef.current) {
@@ -394,7 +221,7 @@ const Game: React.FC<GameProps> = ({
       }
 
       const liveBoard = boardRef.current;
-      const aiMoveOptions: any = {
+      const aiMoveOptions = {
         expertTopK: expertTopPool,
         intermediateTopPoolSize,
       };
@@ -402,24 +229,17 @@ const Game: React.FC<GameProps> = ({
       makeMove(row, col, AI_PLAYER, liveBoard);
       setAiThinking(false);
     }, 1000);
-  };
-  
-  // Handle cell press by human player
+  }, [aiDifficulty, expertTopPool, intermediateTopPoolSize, makeMove]);
+
   const handleCellPress = (row: number, col: number) => {
-    // If game is over, AI is thinking, or cell is already occupied, do nothing
     if (winner !== null || aiThinking || !isValidMove(board, row, col)) {
       return;
     }
-    
-    // If playing against AI and it's not the human's turn, do nothing
     if (vsAI && currentPlayer !== HUMAN_PLAYER) {
       return;
     }
 
-    // Save snapshot for undo before making the move
-    setBoardHistory(prev => [...prev, { board: board.map(r => [...r]), currentPlayer, lastMove }]);
-    
-    // Make the human move — AI turn is triggered by the currentPlayer useEffect
+    setBoardHistory((prev) => [...prev, { board: board.map((r) => [...r]), currentPlayer, lastMove }]);
     makeMove(row, col, currentPlayer, board);
   };
 
@@ -427,33 +247,22 @@ const Game: React.FC<GameProps> = ({
     undoGenerationRef.current += 1;
     cancelPendingAI();
 
-    // If AI won the last game, let AI start on restart unless explicitly overridden.
     const shouldAIStart = !forceHumanStart && vsAI && winner === AI_PLAYER;
     const nextStartingPlayer = shouldAIStart ? AI_PLAYER : HUMAN_PLAYER;
 
     const nextBoardSize = resolveBoardSizeFromWindow(screenWidth, screenHeight);
-    const newBoard = initializeBoard(nextBoardSize);
-    setBoard(newBoard);
+    setBoard(initializeBoard(nextBoardSize));
     setCurrentPlayer(nextStartingPlayer);
     setWinner(null);
     setWinningCells(null);
     setLastMove(null);
-    lastPlayedWinnerRef.current = null;
-    clearCelebrationTimeout();
-    dismissFireworks();
-    setShowVictoryPopup(false);
-    setPopupText(undefined);
-    masterCelebrationPendingRef.current = false;
+    resetWinnerSound();
+    resetCelebration();
     setBoardHistory([]);
     setUndoCount(3);
     undosUsedThisGameRef.current = 0;
-    setBoardCenterTrigger(prev => prev + 1);
-    const nextTurnIsHuman = !vsAI || nextStartingPlayer === HUMAN_PLAYER;
-    if (nextTurnIsHuman) {
-      setTimeLeft(TIMER_DURATION);
-    }
-    setTimerActive(timerEnabled && nextTurnIsHuman);
-    // AI turn will auto-trigger via currentPlayer useEffect when nextStartingPlayer is AI.
+    setBoardCenterTrigger((prev) => prev + 1);
+    resetTimerForTurn(!vsAI || nextStartingPlayer === HUMAN_PLAYER);
   };
 
   const handleUndo = () => {
@@ -463,24 +272,22 @@ const Game: React.FC<GameProps> = ({
     cancelPendingAI();
 
     const prev = boardHistory[boardHistory.length - 1];
-    setBoardHistory(h => h.slice(0, -1));
+    setBoardHistory((h) => h.slice(0, -1));
     setBoard(prev.board);
     setCurrentPlayer(prev.currentPlayer);
     setLastMove(prev.lastMove);
     setWinner(null);
     setWinningCells(null);
-    setUndoCount(c => c - 1);
+    setUndoCount((c) => c - 1);
     undosUsedThisGameRef.current += 1;
-    setTimeLeft(TIMER_DURATION);
-    setTimerActive(timerEnabled && (!vsAI || prev.currentPlayer === HUMAN_PLAYER));
+    resetTimerForTurn(!vsAI || prev.currentPlayer === HUMAN_PLAYER);
   };
-  
-  // Toggle between playing against human or AI
+
   const toggleAIMode = () => {
     setVsAI(!vsAI);
     handleRestart({ forceHumanStart: true });
   };
- 
+
   const scrollControlsToStart = () => {
     controlsScrollRef.current?.scrollTo({ x: 0, animated: true });
   };
@@ -489,197 +296,14 @@ const Game: React.FC<GameProps> = ({
     controlsScrollRef.current?.scrollToEnd({ animated: true });
   };
 
-  // Handle time up - player loses their turn or makes a random move
-  const handleTimeUp = () => {
-    // Read from refs so this always operates on the latest board/player,
-    // even when called from inside a stale setInterval closure.
-    const currentBoard = boardRef.current;
-    const player = currentPlayerRef.current;
-
-    // Timer is human-only in vsAI mode.
-    if (vsAI && player === AI_PLAYER) {
-      return;
-    }
-    
-    // For human players, either make a random move or forfeit turn
-    const emptyPositions: {row: number, col: number}[] = [];
-    
-    // Find all empty positions
-    const currentBoardSize = currentBoard.length;
-    for (let row = 0; row < currentBoardSize; row++) {
-      for (let col = 0; col < currentBoardSize; col++) {
-        if (isValidMove(currentBoard, row, col)) {
-          emptyPositions.push({row, col});
-        }
-      }
-    }
-    
-    // If there are empty positions, make a random move
-    if (emptyPositions.length > 0) {
-      const randomIndex = Math.floor(Math.random() * emptyPositions.length);
-      const {row, col} = emptyPositions[randomIndex];
-      // Save undo snapshot so the player can undo a timer-forced move
-      setBoardHistory(prev => [...prev, { board: currentBoard.map(r => [...r]), currentPlayer: player, lastMove: lastMoveRef.current }]);
-      makeMove(row, col, player, currentBoard);
-    } else {
-      // No empty positions, game is a draw
-      setWinner(0);
-    }
-  };
-  
-  // Timer countdown effect
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    
-    // Only run timer if timer is enabled, game is active and not in AI thinking mode
-    if (timerEnabled && winner === null && timerActive && !(vsAI && currentPlayer === AI_PLAYER && !aiThinking)) {
-      interval = setInterval(() => {
-        setTimeLeft(prevTime => {
-          if (prevTime <= 1) {
-            // Time's up - make a random move or forfeit
-            clearInterval(interval!);
-            handleTimeUp();
-            return 0;
-          }
-          return prevTime - 1;
-        });
-      }, 1000);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [currentPlayer, winner, timerActive, vsAI, aiThinking, timerEnabled]);
-  
-  // Effect to handle AI's move when it's AI's turn
   useEffect(() => {
     if (vsAI && currentPlayer === AI_PLAYER && winner === null && !aiThinking) {
-      // Pause the timer during AI thinking
-      setTimerActive(false);
+      pauseTimer();
       makeAIMove();
     }
-  }, [currentPlayer, vsAI, winner]);
-  
-  // Reset timer when player changes
-  useEffect(() => {
-    // Reset timer for new turn
-    setTimeLeft(TIMER_DURATION);
-    
-    // Start timer if enabled, game is active, and this is a human turn.
-    setTimerActive(timerEnabled && !(vsAI && currentPlayer === AI_PLAYER) && winner === null);
-  }, [currentPlayer, winner, timerEnabled]);
+  }, [currentPlayer, vsAI, winner, aiThinking, makeAIMove, pauseTimer]);
 
-  // Trigger fireworks on each human win (regular wins; master handled below)
-  useEffect(() => {
-    if (winner !== HUMAN_PLAYER) return;
-    if (totalScore >= MASTER_SCORE_THRESHOLD || masterCelebrationPendingRef.current) return;
-    clearCelebrationTimeout();
-    launchFireworks();
-    setShowVictoryPopup(true);
-    popupTimeoutRef.current = setTimeout(() => {
-      dismissFireworks();
-      setShowVictoryPopup(false);
-      popupTimeoutRef.current = null;
-    }, 3000);
-    return () => {
-      clearCelebrationTimeout();
-    };
-  }, [winner, totalScore]);
-
-  // Show loss popup when AI wins
-  useEffect(() => {
-    if (winner !== AI_PLAYER) return;
-    if (popupTimeoutRef.current) {
-      clearTimeout(popupTimeoutRef.current);
-      popupTimeoutRef.current = null;
-    }
-    setShowVictoryPopup(true);
-    popupTimeoutRef.current = setTimeout(() => {
-      setShowVictoryPopup(false);
-      popupTimeoutRef.current = null;
-    }, 3000);
-    return () => {
-      if (popupTimeoutRef.current) {
-        clearTimeout(popupTimeoutRef.current);
-        popupTimeoutRef.current = null;
-      }
-    };
-  }, [winner]);
-
-  // Trigger fireworks when score first reaches master threshold; sync score to DB
-  useEffect(() => {
-    if (!hasMountedScoreEffectRef.current) {
-      hasMountedScoreEffectRef.current = true;
-      prevTotalScoreRef.current = totalScore;
-      return;
-    }
-
-    const crossedMaster =
-      masterCelebrationPendingRef.current ||
-      (totalScore >= MASTER_SCORE_THRESHOLD && prevTotalScoreRef.current < MASTER_SCORE_THRESHOLD);
-
-    if (crossedMaster && totalScore >= MASTER_SCORE_THRESHOLD) {
-      masterCelebrationPendingRef.current = false;
-      clearCelebrationTimeout();
-      launchFireworks();
-      setPopupText(t(language, 'scoreGreat'));
-      setShowVictoryPopup(true);
-      popupTimeoutRef.current = setTimeout(() => {
-        void (async () => {
-          try {
-            await onStartFreshRun?.(MASTER_SCORE_THRESHOLD);
-          } catch {
-            // Ignore leaderboard sync errors; still reset UI
-          }
-          dismissFireworks();
-          setShowVictoryPopup(false);
-          setPopupText(undefined);
-          setTotalScore(0);
-          setAiDifficulty('intermediate');
-          popupTimeoutRef.current = null;
-        })();
-      }, 4500);
-      // Play wow sound
-      (async () => {
-        try {
-          if (wowSoundRef.current) {
-            await wowSoundRef.current.setPositionAsync(0);
-            await wowSoundRef.current.playAsync();
-          }
-        } catch {
-          // Ignore playback errors
-        }
-      })();
-    }
-    // Sync new best score to DB if it increased
-    if (totalScore > prevTotalScoreRef.current && onScoreUpdate) {
-      onScoreUpdate(totalScore);
-    }
-    prevTotalScoreRef.current = totalScore;
-  }, [totalScore, onScoreUpdate, onStartFreshRun, language]);
-
-  const isMaster = totalScore >= MASTER_SCORE_THRESHOLD;
-  const isExpert = totalScore >= EXPERT_THRESHOLD;
-  const isAITurnForTimer = vsAI && currentPlayer === AI_PLAYER;
-  const showMoodTimer = winner === null && timerEnabled;
-  const timerMood = timeLeft > 10
-    ? { emoji: '🙂', bg: '#DCFCE7', text: '#166534' }
-    : timeLeft > 6
-    ? { emoji: '😐', bg: '#FEF9C3', text: '#854D0E' }
-    : timeLeft > 3
-    ? { emoji: '😰', bg: '#FFEDD5', text: '#9A3412' }
-    : { emoji: '😭', bg: '#FEE2E2', text: '#991B1B' };
-  // Segment widths: segment1 is 80% of bar, segment2 is 20%
-  const seg1Fill = Math.min(1, totalScore / EXPERT_THRESHOLD);
-  const seg2Fill =
-    isExpert && MASTER_SCORE_THRESHOLD > EXPERT_THRESHOLD
-      ? Math.min(1, (totalScore - EXPERT_THRESHOLD) / (MASTER_SCORE_THRESHOLD - EXPERT_THRESHOLD))
-      : 0;
-
-  // In landscape the board lives in the right 62% column
   const boardColumnWidth = isTabletLandscape ? screenWidth * 0.62 : screenWidth;
-
-  // ── Reusable UI blocks ──────────────────────────────────────────────────────
 
   const gameStatusBlock = (
     <GameStatus
@@ -716,7 +340,6 @@ const Game: React.FC<GameProps> = ({
             </View>
           </View>
 
-          {/* Two-segment bar */}
           <View style={styles.scoreBarOuter}>
             <View style={[styles.scoreBarSegment, { flex: 80 }]}>
               <View style={styles.scoreBarTrack}>
@@ -738,9 +361,25 @@ const Game: React.FC<GameProps> = ({
           </View>
         </View>
         {showMoodTimer && (
-          <View style={[styles.moodTimerBox, { backgroundColor: isAITurnForTimer ? '#DBEAFE' : timerMood.bg }]}>
-            <Text style={styles.moodEmoji}>{isAITurnForTimer ? '🦊' : timerMood.emoji}</Text>
-            <Text style={[styles.moodTimeText, { color: isAITurnForTimer ? '#1E40AF' : timerMood.text }]}>
+          <View
+            style={[styles.moodTimerBox, { backgroundColor: isAITurnForTimer ? '#DBEAFE' : timerMood.bg }]}
+            accessibilityLabel={showTimerWarning ? t(language, 'timerExpiryWarning') : undefined}
+          >
+            <Text style={styles.moodEmoji}>
+              {showTimerWarning ? '⚠️' : isAITurnForTimer ? '🦊' : timerMood.emoji}
+            </Text>
+            <Text
+              style={[
+                styles.moodTimeText,
+                {
+                  color: showTimerWarning
+                    ? '#B91C1C'
+                    : isAITurnForTimer
+                      ? '#1E40AF'
+                      : timerMood.text,
+                },
+              ]}
+            >
               {isAITurnForTimer ? 'AI' : `${timeLeft}s`}
             </Text>
           </View>
@@ -799,7 +438,7 @@ const Game: React.FC<GameProps> = ({
   const boardBlock = (
     <View
       style={styles.boardWrapper}
-      onLayout={e => {
+      onLayout={(e) => {
         const { width, height } = e.nativeEvent.layout;
         setBoardSize({ width, height });
       }}
@@ -834,11 +473,9 @@ const Game: React.FC<GameProps> = ({
     </View>
   );
 
-  // ── Landscape tablet: left sidebar + right board ────────────────────────────
   if (isTabletLandscape) {
     return (
       <View style={[styles.container, styles.containerLandscape]}>
-        {/* Left sidebar: all controls */}
         <View style={styles.landscapeSidebar}>
           <ScrollView contentContainerStyle={styles.landscapeSidebarContent} showsVerticalScrollIndicator={false}>
             {gameStatusBlock}
@@ -846,8 +483,6 @@ const Game: React.FC<GameProps> = ({
             {controlsBlock}
           </ScrollView>
         </View>
-
-        {/* Right column: board only */}
         <View style={styles.landscapeBoardColumn}>
           {boardBlock}
         </View>
@@ -855,7 +490,6 @@ const Game: React.FC<GameProps> = ({
     );
   }
 
-  // ── Portrait (phone or tablet) ──────────────────────────────────────────────
   return (
     <View style={styles.container}>
       {gameStatusBlock}
