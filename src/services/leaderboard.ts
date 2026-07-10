@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MASTER_SCORE_THRESHOLD } from '../constants/scoring';
+import { fetchUserSettings } from './settings';
 
 const LEADERBOARD_STORAGE_KEY = 'gomoku_local_leaderboard_v1';
 const LEADERBOARD_MAX_ENTRIES = 50;
@@ -9,6 +10,7 @@ interface LocalLeaderboardRecord {
   score: number;
   createdAt: string;
   updatedAt: string;
+  userHandle?: string;
 }
 
 interface LegacyLocalLeaderboardRecord {
@@ -24,6 +26,7 @@ export interface LeaderboardEntry {
   createdAt: string;
   playedAt: string;
   date: string;
+  userHandle: string;
 }
 
 const formatDate = (isoDate: string): string => {
@@ -82,6 +85,7 @@ const readRecords = async (): Promise<LocalLeaderboardRecord[]> => {
           score: legacyRecord.score,
           createdAt: legacyRecord.createdAt,
           updatedAt,
+          userHandle: typeof item?.userHandle === 'string' ? item.userHandle.trim().slice(0, 24) : undefined,
         };
       })
       .filter((item): item is LocalLeaderboardRecord => item !== null);
@@ -107,6 +111,7 @@ export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
     createdAt: row.createdAt,
     playedAt: row.updatedAt,
     date: formatDate(row.updatedAt),
+    userHandle: row.userHandle?.trim() ?? '',
   }));
 }
 
@@ -130,6 +135,8 @@ export async function addLeaderboardEntry(score: number): Promise<void> {
   const records = await readRecords();
   const latest = getLatestRecord(records);
   const now = new Date().toISOString();
+  const { userHandle } = await fetchUserSettings();
+  const snapshotHandle = userHandle.trim().slice(0, 24);
 
   let next: LocalLeaderboardRecord[];
 
@@ -140,7 +147,7 @@ export async function addLeaderboardEntry(score: number): Promise<void> {
   } else {
     // Otherwise, create a new run entry for the new score.
     const id = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-    next = [{ id, score, createdAt: now, updatedAt: now }, ...records];
+    next = [{ id, score, createdAt: now, updatedAt: now, userHandle: snapshotHandle }, ...records];
   }
 
   next = next.slice(0, LEADERBOARD_MAX_ENTRIES);
@@ -153,6 +160,8 @@ export async function startFreshRun(currentScore: number): Promise<void> {
   const latest = getLatestRecord(records);
   const now = new Date().toISOString();
   const normalizedScore = Math.max(0, Math.floor(currentScore));
+  const { userHandle } = await fetchUserSettings();
+  const snapshotHandle = userHandle.trim().slice(0, 24);
 
   if (!latest) {
     return;
@@ -163,6 +172,7 @@ export async function startFreshRun(currentScore: number): Promise<void> {
     score: 0,
     createdAt: now,
     updatedAt: now,
+    userHandle: snapshotHandle,
   };
 
   let next: LocalLeaderboardRecord[];

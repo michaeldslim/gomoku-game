@@ -26,6 +26,7 @@ export interface Translations {
   openSettings: string;
   aiThinking: string;
   scoreGreat: string;
+  timerExpiryWarning: string;
 
   // GameStatus
   currentTurnBlack: string;
@@ -121,6 +122,7 @@ export const translations: Record<Language, Translations> = {
     openSettings: '⚙️ 열기',
     aiThinking: 'AI 생각 중...',
     scoreGreat: '참 잘했어요!',
+    timerExpiryWarning: '시간 초과 — 곧 임의 위치에 둡니다',
 
     // GameStatus
     currentTurnBlack: '현재 차례: 흑돌(⚫)',
@@ -214,6 +216,7 @@ export const translations: Record<Language, Translations> = {
     openSettings: '⚙️ Open',
     aiThinking: 'AI thinking...',
     scoreGreat: 'You did great!',
+    timerExpiryWarning: 'Time up soon — random move next',
 
     // GameStatus
     currentTurnBlack: 'Turn: Black(⚫)',

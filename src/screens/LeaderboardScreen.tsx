@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { clearLeaderboard, fetchLeaderboard, LeaderboardEntry } from '../services/leaderboard';
-import { fetchUserSettings } from '../services/settings';
 import { Language, t } from '../utils/i18n';
 
 interface Props {
@@ -21,7 +20,6 @@ interface Props {
 export default function LeaderboardScreen({ onBack, language = 'ko' }: Props) {
   const insets = useSafeAreaInsets();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [userHandle, setUserHandle] = useState('');
   const [loading, setLoading] = useState(true);
   const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const topEntries = entries.filter((item) => item.score >= 100);
@@ -33,9 +31,8 @@ export default function LeaderboardScreen({ onBack, language = 'ko' }: Props) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [data, settings] = await Promise.all([fetchLeaderboard(), fetchUserSettings()]);
+    const data = await fetchLeaderboard();
     setEntries(data);
-    setUserHandle(settings.userHandle.trim());
     setLoading(false);
   }, []);
 
@@ -86,6 +83,9 @@ export default function LeaderboardScreen({ onBack, language = 'ko' }: Props) {
       <View style={styles.row}>
         <Text style={styles.rank}>{rankEmoji}</Text>
         <View style={styles.infoCol}>
+          {item.userHandle.length > 0 && (
+            <Text style={styles.nicknameLine}>{item.userHandle}</Text>
+          )}
           <Text style={styles.scoreLine}>{t(language, 'scoreLabel')}: {item.score}</Text>
           <Text style={styles.dateLine}>{t(language, 'lastPlayed')}: {item.date}</Text>
           <Text style={styles.dateLine}>{t(language, 'started')}: {item.createdAt.slice(0, 10)}</Text>
@@ -143,12 +143,6 @@ export default function LeaderboardScreen({ onBack, language = 'ko' }: Props) {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator
         >
-          {userHandle.length > 0 && (
-            <View style={styles.handleCard}>
-              <Text style={styles.handleLabel}>{t(language, 'nickname')}</Text>
-              <Text style={styles.handleValue}>{userHandle}</Text>
-            </View>
-          )}
           {renderSection(t(language, 'topSection'), topEntries)}
           {renderSection(t(language, 'bottomSection'), bottomEntries)}
         </ScrollView>
@@ -303,6 +297,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#212529',
     fontWeight: '600',
+  },
+  nicknameLine: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#457B9D',
+    marginBottom: 2,
   },
   dateLine: {
     marginTop: 2,
