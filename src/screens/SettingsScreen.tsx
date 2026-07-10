@@ -17,7 +17,7 @@ import {
   INTERMEDIATE_TOP_POOL_MIN,
   UserSettings,
 } from '../services/settings';
-import { Language, t } from '../utils/i18n';
+import { t } from '../utils/i18n';
 
 interface Props {
   initialSettings: UserSettings;
@@ -49,13 +49,13 @@ const sanitizeExpertTopPool = (value: number): number => {
 
 export default function SettingsScreen({ initialSettings, onBack, onSave }: Props) {
   const insets = useSafeAreaInsets();
+  const language = initialSettings.language;
   const [userHandle, setUserHandle] = useState(initialSettings.userHandle);
   const [timerEnabled, setTimerEnabled] = useState(initialSettings.timerEnabled);
   const [intermediateTopPoolSize, setIntermediateTopPoolSize] = useState(initialSettings.intermediateTopPoolSize);
   const [expertTopPool, setExpertTopPool] = useState(initialSettings.expertTopPool);
   const [bgMusicEnabled, setBgMusicEnabled] = useState(initialSettings.bgMusicEnabled);
   const [bgMusicVolume, setBgMusicVolume] = useState(initialSettings.bgMusicVolume);
-  const [language, setLanguage] = useState<Language>(initialSettings.language);
   useEffect(() => {
     setUserHandle(initialSettings.userHandle);
     setTimerEnabled(initialSettings.timerEnabled);
@@ -63,7 +63,6 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
     setExpertTopPool(initialSettings.expertTopPool);
     setBgMusicEnabled(initialSettings.bgMusicEnabled);
     setBgMusicVolume(initialSettings.bgMusicVolume);
-    setLanguage(initialSettings.language);
   }, [initialSettings]);
 
   const nicknameChanged = userHandle.trim() !== initialSettings.userHandle;
@@ -77,7 +76,7 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
         expertTopPool: sanitizeExpertTopPool(expertTopPool),
         bgMusicEnabled,
         bgMusicVolume,
-        language,
+        language: initialSettings.language,
         ...patch,
       };
       await onSave(next);
@@ -107,24 +106,6 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
         contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom + 24, 24) }]}
         showsVerticalScrollIndicator
       >
-        <View style={styles.card}>
-          <Text style={styles.label}>{t(language, 'languageSettingLabel')}</Text>
-          <View style={styles.chipRow}>
-            <TouchableOpacity
-              style={[styles.chip, language === 'ko' && styles.chipActive]}
-              onPress={() => { setLanguage('ko'); autoSave({ language: 'ko' }); }}
-            >
-              <Text style={[styles.chipText, language === 'ko' && styles.chipTextActive]}>한국어</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.chip, language === 'en' && styles.chipActive]}
-              onPress={() => { setLanguage('en'); autoSave({ language: 'en' }); }}
-            >
-              <Text style={[styles.chipText, language === 'en' && styles.chipTextActive]}>English</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         <View style={styles.card}>
           <Text style={styles.label}>{t(language, 'nicknameLabel')}</Text>
           <TextInput

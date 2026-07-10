@@ -172,6 +172,24 @@ function AppContent() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{t(lang, 'appTitle')}</Text>
+        <View style={styles.languageRow}>
+          <View style={styles.chipRow}>
+            <TouchableOpacity
+              style={[styles.chip, lang === 'ko' && styles.chipActive]}
+              onPress={() => handleLanguageChange('ko')}
+              disabled={!settingsLoaded}
+            >
+              <Text style={[styles.chipText, lang === 'ko' && styles.chipTextActive]}>한국어</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.chip, lang === 'en' && styles.chipActive]}
+              onPress={() => handleLanguageChange('en')}
+              disabled={!settingsLoaded}
+            >
+              <Text style={[styles.chipText, lang === 'en' && styles.chipTextActive]}>English</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       <ScrollView
@@ -241,6 +259,42 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#212529',
+  },
+  languageRow: {
+    marginTop: 10,
+    alignItems: 'center',
+    gap: 6,
+  },
+  languageLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6C757D',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chip: {
+    minWidth: 72,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+  },
+  chipActive: {
+    backgroundColor: '#457B9D',
+    borderColor: '#457B9D',
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
   },
   startContainer: {
     flex: 1,

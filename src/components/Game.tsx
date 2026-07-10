@@ -100,6 +100,15 @@ const Game: React.FC<GameProps> = ({
   const soundsReadyPromiseRef = useRef<Promise<void> | null>(null);
   const resolveSoundsReadyRef = useRef<(() => void) | null>(null);
   const masterCelebrationPendingRef = useRef(false);
+  const undoGenerationRef = useRef(0);
+
+  const cancelPendingAI = () => {
+    if (aiTimeoutRef.current) {
+      clearTimeout(aiTimeoutRef.current);
+      aiTimeoutRef.current = null;
+    }
+    setAiThinking(false);
+  };
 
   const clearCelebrationTimeout = () => {
     if (popupTimeoutRef.current) {
@@ -368,18 +377,29 @@ const Game: React.FC<GameProps> = ({
   };
   
   // AI makes a move
-  const makeAIMove = (boardState: number[][]) => {
+  const makeAIMove = () => {
+    const turnToken = undoGenerationRef.current;
     setAiThinking(true);
-    
+
     // Add a small delay to simulate AI "thinking"
     aiTimeoutRef.current = setTimeout(() => {
       aiTimeoutRef.current = null;
+      if (turnToken !== undoGenerationRef.current) {
+        setAiThinking(false);
+        return;
+      }
+      if (currentPlayerRef.current !== AI_PLAYER) {
+        setAiThinking(false);
+        return;
+      }
+
+      const liveBoard = boardRef.current;
       const aiMoveOptions: any = {
         expertTopK: expertTopPool,
         intermediateTopPoolSize,
       };
-      const { row, col } = findBestMove(boardState, AI_PLAYER, aiDifficulty, aiMoveOptions);
-      makeMove(row, col, AI_PLAYER, boardState);
+      const { row, col } = findBestMove(liveBoard, AI_PLAYER, aiDifficulty, aiMoveOptions);
+      makeMove(row, col, AI_PLAYER, liveBoard);
       setAiThinking(false);
     }, 1000);
   };
@@ -404,12 +424,8 @@ const Game: React.FC<GameProps> = ({
   };
 
   const handleRestart = ({ forceHumanStart = false }: { forceHumanStart?: boolean } = {}) => {
-    // Cancel any pending AI move from the previous game
-    if (aiTimeoutRef.current) {
-      clearTimeout(aiTimeoutRef.current);
-      aiTimeoutRef.current = null;
-    }
-    setAiThinking(false);
+    undoGenerationRef.current += 1;
+    cancelPendingAI();
 
     // If AI won the last game, let AI start on restart unless explicitly overridden.
     const shouldAIStart = !forceHumanStart && vsAI && winner === AI_PLAYER;
@@ -441,7 +457,11 @@ const Game: React.FC<GameProps> = ({
   };
 
   const handleUndo = () => {
-    if (undoCount <= 0 || boardHistory.length === 0 || aiThinking || winner !== null) return;
+    if (undoCount <= 0 || boardHistory.length === 0 || winner !== null) return;
+
+    undoGenerationRef.current += 1;
+    cancelPendingAI();
+
     const prev = boardHistory[boardHistory.length - 1];
     setBoardHistory(h => h.slice(0, -1));
     setBoard(prev.board);
@@ -451,6 +471,8 @@ const Game: React.FC<GameProps> = ({
     setWinningCells(null);
     setUndoCount(c => c - 1);
     undosUsedThisGameRef.current += 1;
+    setTimeLeft(TIMER_DURATION);
+    setTimerActive(timerEnabled && (!vsAI || prev.currentPlayer === HUMAN_PLAYER));
   };
   
   // Toggle between playing against human or AI
@@ -534,7 +556,7 @@ const Game: React.FC<GameProps> = ({
     if (vsAI && currentPlayer === AI_PLAYER && winner === null && !aiThinking) {
       // Pause the timer during AI thinking
       setTimerActive(false);
-      makeAIMove(boardRef.current);
+      makeAIMove();
     }
   }, [currentPlayer, vsAI, winner]);
   
