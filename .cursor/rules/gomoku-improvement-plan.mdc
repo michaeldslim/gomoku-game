@@ -15,10 +15,10 @@ Last reviewed: 2026-07-10.
 |-------|------|-------|
 | Phase 0 (P0) | 5 | 5 |
 | Phase 1 (P1) | 7 (+1 partial) | 8 |
-| Phase 2 (P2) | 1 | 5 |
+| Phase 2 (P2) | 5 | 5 |
 | Phase 3 (P3) | 0 | 4 |
 | Phase 4 (P4) | 0 | 4 |
-| **All** | **13** (+1 partial) | **26** |
+| **All** | **17** (+1 partial) | **26** |
 
 ### Extra (not numbered in original audit)
 
@@ -53,10 +53,10 @@ Last reviewed: 2026-07-10.
 ## Phase 2 (P2) — AI Logic
 
 - [x] **#14 Intermediate** — Force `BLOCK_WIN_SCORE` then `URGENT_DEFENSE_SCORE` (800k open-four) before top-pool random (`aiLogic.ts`)
-- [ ] **#15 Expert** — `countWinThreats` perf on 23×23 (cache or top-N only)
-- [ ] **#16 Expert** — Remove random jitter when `score >= 40_000_000`
-- [ ] **#17 AI depth** — Optional depth-2 minimax for Expert Hard
-- [ ] **#18 Opening** — Opening book for moves 1–3
+- [x] **#15 Expert** — `countWinThreats` scans candidate cells only (not full 23×23 board) (`aiLogic.ts`)
+- [x] **#16 Expert** — No jitter on fork tiers; deterministic pick when `score >= FORK_BLOCK_SCORE` (40M) (`aiLogic.ts`)
+- [x] **#17 AI depth** — Depth-2 minimax on top-8 when Expert Hard (`EXPERT_TOP_POOL_HARD`) (`aiLogic.ts`)
+- [x] **#18 Opening** — Opening book for game moves 1–3 (`getOpeningBookMove` in `aiLogic.ts`)
 
 ---
 
@@ -80,8 +80,8 @@ Last reviewed: 2026-07-10.
 
 ## Suggested next up
 
-1. **P2** #16, #15 — AI reliability / perf
-2. **P3** #19, #21 — gameplay polish
+1. **P3** #19, #21 — gameplay polish (score preview, 2P banner)
+2. **P3** #20, #22 — expert switch toast, draw popup styling
 3. **P4** #23, #25 — OTA + tests
 
 ## Files to touch (reference)
@@ -90,7 +90,7 @@ Last reviewed: 2026-07-10.
 - `src/components/Game.tsx` — P0-2 ✓, P0-3/4 ✓, P1-10/11 ✓, P3-19/20/21
 - `src/hooks/` — P1-11/12 ✓ (`useGameSounds`, `useGameTimer`, `useScoreProgression`)
 - `src/utils/gameLogic.ts` — P0-3/5 ✓
-- `src/utils/aiLogic.ts` — P2-14 ✓, P2-15/16/17/18
+- `src/utils/aiLogic.ts` — P2-14/15/16/17/18 ✓
 - `App.tsx` — P1-6 ✓, P1-7 ✓
 - `src/constants/scoring.ts` — master threshold + dev test ✓
 - `src/utils/i18n.ts` — new strings
