@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Gomoku Improvement Plan (v2.1.1 audit)
 
-Last reviewed: 2026-07-09.
+Last reviewed: 2026-07-10.
 
 **Notation:** `P0` = **Phase 0**, `P1` = **Phase 1**, … `P4` = **Phase 4**.
 
@@ -13,12 +13,12 @@ Last reviewed: 2026-07-09.
 
 | Phase | Done | Total |
 |-------|------|-------|
-| Phase 0 (P0) | 2 | 5 |
+| Phase 0 (P0) | 5 | 5 |
 | Phase 1 (P1) | 1 (+1 partial) | 8 |
 | Phase 2 (P2) | 1 | 5 |
 | Phase 3 (P3) | 0 | 4 |
 | Phase 4 (P4) | 0 | 4 |
-| **All** | **4** (+1 partial) | **26** |
+| **All** | **7** (+1 partial) | **26** |
 
 ### Extra (not numbered in original audit)
 
@@ -31,9 +31,9 @@ Last reviewed: 2026-07-09.
 
 - [x] **#1 Leaderboard** — `getLatestRecord()` by `updatedAt`; `withoutRecord()` on updates (`leaderboard.ts`)
 - [x] **#2 Gameplay** — Master celebration calls `onStartFreshRun(MASTER_SCORE_THRESHOLD)`; new run on threshold (`Game.tsx`, `scoring.ts`)
-- [ ] **#3 Gameplay** — Tablet rotation desyncs board size mid-game (15↔23); warn or auto-restart on `activeBoardSize` change
-- [ ] **#4 Defaults** — Align `bgMusicEnabled` default (`Game.tsx` true vs `settings.ts` false)
-- [ ] **#5 Docs** — Remove stale border comments in `gameLogic.ts` / `Board.tsx`
+- [x] **#3 Gameplay** — Lock board size at game start / restart; rotation no longer changes `activeBoardSize` mid-play (`Game.tsx`, `gameLogic.ts`)
+- [x] **#4 Defaults** — Align `bgMusicEnabled` default to `false` (`Game.tsx` matches `settings.ts`)
+- [x] **#5 Docs** — Remove stale border comments in `gameLogic.ts` / `Board.tsx`
 
 ---
 
@@ -80,15 +80,15 @@ Last reviewed: 2026-07-09.
 
 ## Suggested next up
 
-1. **P0** #3, #4 — rotation + bgMusic default
-2. **P1** #6, #8, #10 — UX quick wins
-3. **P2** #16, #15 — AI reliability / perf
-4. **P4** #23, #25 — OTA + tests
+1. **P1** #6, #8, #10 — UX quick wins
+2. **P2** #16, #15 — AI reliability / perf
+3. **P4** #23, #25 — OTA + tests
 
 ## Files to touch (reference)
 
 - `src/services/leaderboard.ts` — P0-1 ✓
-- `src/components/Game.tsx` — P0-2 ✓, P0-3/4, P1-10/11/12, P3-19/20/21
+- `src/components/Game.tsx` — P0-2 ✓, P0-3/4 ✓, P1-10/11/12, P3-19/20/21
+- `src/utils/gameLogic.ts` — P0-3/5 ✓
 - `src/utils/aiLogic.ts` — P2-14 ✓, P2-15/16/17/18
 - `App.tsx` — P1-7 ✓
 - `src/constants/scoring.ts` — master threshold + dev test ✓
