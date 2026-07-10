@@ -1,93 +1,118 @@
 # 오목 (Gomoku) Game
 
-A React Native implementation of the classic Gomoku (Five in a Row) game using Expo and TypeScript.
-
-## Game Description
-
-Gomoku, also called Five in a Row, is a traditional board game played on a 15×15 grid. Players take turns placing stones (black and white) on the board, with the goal of getting five stones in a row horizontally, vertically, or diagonally.
+A React Native Gomoku (Five in a Row) app built with Expo and TypeScript. Play against AI or a friend, climb the local leaderboard, and progress from Intermediate to Expert to Master.
 
 ## Features
 
-- 15×15 game board
-- Turn-based gameplay (black goes first)
-- Win detection (5 in a row)
-- Game status display in Korean
-- Restart game functionality
-- Cross-platform (iOS, Android, Web)
+### Gameplay
+- **15×15 board** on phones; **23×23** on tablets (size locked per game — rotation does not resize mid-play)
+- **AI mode** (black, human) and **2-player** local mode
+- **Intermediate AI** (score &lt; 80) and **Expert AI** (score ≥ 80), configurable pool sizes in Settings
+- **Scoring**: +10 per win (minus undo penalty); reach **100** for Master celebration and a fresh run
+- **Undo** (3 per game): reverts your move and the AI reply in vs-AI mode
+- **Optional 15s turn timer** with mood indicator and expiry warning before random auto-move
+- Win detection, draw detection, winning-line highlight, fireworks, victory/loss popups
+
+### UI & UX
+- **Korean / English** language toggle on the home screen
+- Home instructions, leaderboard, settings
+- Tablet **landscape layout** (sidebar + board column)
+- Scrollable board on large grids
+
+### Audio
+- Stone placement, win, lose, and master (wow) sound effects
+- Optional background music with volume control
+
+### Data (local)
+- **Leaderboard** stored in AsyncStorage — top (100+) and recent (&lt;100) sections, **nickname per run row**
+- **Settings**: nickname, timer, AI difficulty pools, background music, language
+- Score syncs to leaderboard on improvement; master threshold triggers `startFreshRun`
+
+### Platforms
+- iOS, Android, Web (Expo)
 
 ## Prerequisites
 
-Before running the project, make sure you have the following installed:
-
-- [Node.js](https://nodejs.org/) (v14 or newer)
-- [npm](https://www.npmjs.com/) or [Yarn](https://yarnpkg.com/)
-- [Expo CLI](https://docs.expo.dev/get-started/installation/)
-- For Android: Android Studio and Android SDK
-- For iOS: Xcode (Mac only)
+- [Node.js](https://nodejs.org/) (v18+ recommended)
+- npm or Yarn
+- [Expo CLI](https://docs.expo.dev/get-started/installation/) (via `npx expo`)
+- Android Studio / Xcode for native builds
 
 ## Installation
 
-1. Clone the repository:
-   ```
-   git clone <repository-url>
-   ```
-
-2. Install dependencies:
-   ```
-   npm install
-   ```
-   or
-   ```
-   yarn install
-   ```
+```bash
+git clone <repository-url>
+cd gomoku-game
+npm install
+```
 
 ## Running the App
 
-### Using Expo Go
+```bash
+npx expo start
+```
 
-The easiest way to run the app is using Expo Go:
+- **iOS**: press `i` or scan QR with Camera
+- **Android**: press `a` or scan with Expo Go
+- **Web**: press `w`
 
-1. Start the development server:
-   ```
-   npx expo start
-   ```
+Native development builds:
 
-2. Run on different platforms:
-   - For iOS: Press `i` in the terminal or scan the QR code using the Camera app
-   - For Android: Press `a` in the terminal or scan the QR code using the Expo Go app
-   - For web: Press `w` in the terminal
+```bash
+npx expo run:android
+npx expo run:ios
+```
 
-### Building Native Apps
+## Project Structure
 
-#### Android
+```
+gomoku-game/
+├── App.tsx                    # Navigation: home, game, leaderboard, settings
+├── app.json                   # Expo config, runtimeVersion, OTA updates URL
+├── index.ts                   # Entry point
+├── scripts/
+│   └── bump-runtime.js        # Sync runtimeVersion → Android strings.xml
+├── assets/
+│   └── sounds/                # win, lose, stone, wow, background music
+└── src/
+    ├── components/
+    │   ├── Board.tsx          # Grid, stones, scroll/center
+    │   ├── Game.tsx           # Main game orchestration
+    │   ├── GameStatus.tsx     # Turn, winner, restart, undo, leaderboard
+    │   ├── Stone.tsx
+    │   ├── Fireworks.tsx
+    │   └── VictoryPopup.tsx
+    ├── constants/
+    │   ├── app.ts             # APP_VERSION from app.json
+    │   ├── game.ts            # Timer, player IDs, expert threshold
+    │   └── scoring.ts         # Master threshold, dev test flag
+    ├── hooks/
+    │   ├── useGameSounds.ts   # SFX + background music
+    │   ├── useGameTimer.ts    # Countdown, mood, expiry warning
+    │   └── useScoreProgression.ts  # Score, expert/master, celebrations
+    ├── screens/
+    │   ├── InstructionScreen.tsx
+    │   ├── LeaderboardScreen.tsx
+    │   └── SettingsScreen.tsx
+    ├── services/
+    │   ├── leaderboard.ts     # Local runs, scores, nicknames
+    │   └── settings.ts        # AsyncStorage user preferences
+    └── utils/
+        ├── aiLogic.ts         # Intermediate / Expert move selection
+        ├── gameLogic.ts       # Board, win, valid moves
+        └── i18n.ts            # KO / EN strings
+```
 
-1. Start the development build:
-   ```
-   npx expo run:android
-   ```
+## Game Rules
 
-2. For a production build:
-   ```
-   npx expo build:android
-   ```
-
-#### iOS (Mac only)
-
-1. Start the development build:
-   ```
-   npx expo run:ios
-   ```
-
-2. For a production build:
-   ```
-   npx expo build:ios
-   ```
+1. Black plays first.
+2. First to connect **five** stones horizontally, vertically, or diagonally wins.
+3. If the board is full with no winner, the game is a draw.
+4. In AI mode, white is the AI opponent.
 
 ## Testing Master Celebration (Dev)
 
-Use this to verify fireworks, the master popup, wow sound, and leaderboard reset without playing to 100 points.
-
-### Enable test mode
+Verify fireworks, master popup, wow sound, and leaderboard reset without reaching 100 points.
 
 In `src/constants/scoring.ts`:
 
@@ -96,146 +121,34 @@ export const USE_TEST_MASTER_THRESHOLD = true;
 export const MASTER_SCORE_THRESHOLD = USE_TEST_MASTER_THRESHOLD ? 20 : 100;
 ```
 
-Reload the app after saving. On the home screen, the version line should show `TEST master @ 20`.
+Reload the app. The home version line shows `TEST master @ 20`.
 
-### How to test
-
-1. Start the app (e.g. `npx expo run:android` or `npx expo start`).
+1. Start the app (`npx expo start` or `npx expo run:android`).
 2. Play in **AI mode**.
-3. Win **2 games in a row** (+10 points each → 20 points total).
-4. At 20 points you should see:
-   - Fireworks on the board
-   - Master popup (`참 잘했어요!` / `You did great!`)
-   - Wow sound
-   - Score reset to 0 and difficulty back to intermediate after ~4.5 seconds
+3. Win **2 games in a row** (+10 each → 20 total).
+4. Expect fireworks, master popup, wow sound, score reset to 0, and intermediate AI after ~4.5s.
 
-### Disable before release
+Set `USE_TEST_MASTER_THRESHOLD` back to `false` before release.
 
-Set `USE_TEST_MASTER_THRESHOLD` back to `false` in `src/constants/scoring.ts` so master celebration requires **100 points** again.
+## EAS OTA Workflow (Expo Updates)
 
-## Project Structure
+Configured for EAS Update OTA delivery of JS/TS changes.
 
-```
-GomokuGame/
-├── App.tsx              # Main application entry point
-├── src/
-│   ├── components/      # React components
-│   │   ├── Board.tsx    # Game board component
-│   │   ├── Game.tsx     # Main game logic component
-│   │   ├── GameStatus.tsx # Game status display
-│   │   └── Stone.tsx    # Stone component (black/white)
-│   └── utils/
-│       └── gameLogic.ts # Game rules and logic
-├── assets/              # Images, fonts, etc.
-└── ...
-```
+1. Check login: `eas whoami` (or `eas login`)
+2. Link project (once): `eas init`
+3. Ensure `app.json` has `updates.url` and `runtimeVersion`
+4. Native rebuild after native changes: `eas build --platform android --profile production`
+5. Install: `eas build:run --platform android` or sideload APK
+6. JS-only update: `eas update --branch production --message "describe change"`
+7. Bump runtime before native rebuild: `npm run bump:runtime -- 1.2.0`
 
-## Game Rules
+### Helper scripts
 
-1. Black always goes first
-2. Players take turns placing stones on the board
-3. The first player to get 5 stones in a row (horizontally, vertically, or diagonally) wins
-4. If the board is filled completely with no winner, the game is a draw
+- `npm run bump:runtime -- 1.2.0` — set `runtimeVersion` in `app.json` and Android `strings.xml`
+- `npm run bump:runtime:from-appjson` — sync `strings.xml` from `app.json`
+
+`scripts/bump-runtime.js` updates both `app.json` and `android/app/src/main/res/values/strings.xml`.
 
 ## License
 
 [MIT License](LICENSE)
-
-## EAS OTA Workflow (Expo Updates)
-
-This project is configured to use EAS Update (OTA) for delivering JS/TS changes to installed apps. The steps below cover common scenarios and exact commands.
-
-1) Check Expo login
-```bash
-eas whoami
-```
-If not logged in:
-```bash
-eas logout
-eas login
-```
-
-2) One-time project linking (if needed)
-```bash
-cd /path/to/gomoku-game
-eas init
-```
-
-3) app.json (one-time)
-- Ensure `updates.url` is set to `https://u.expo.dev/YOUR_PROJECT_ID` and `runtimeVersion` is present. Example:
-```json
-"updates": { "url": "https://u.expo.dev/YOUR_PROJECT_ID" },
-"runtimeVersion": "1.0.0"
-```
-
-4) Install & configure `expo-updates` (one-time)
-```bash
-npx expo install expo-updates
-```
-
-5) Build-time env vars (do not commit secrets)
-- Add only the environment variables your app currently uses to `eas.json` production profile under `env`.
-- If `eas.json` contains secrets, add it to `.gitignore`:
-```bash
-echo "eas.json" >> .gitignore
-```
-
-6) Initial native build / rebuild after native changes
-```bash
-eas build --platform android --profile production
-```
-
-7) Install APK on devices
-Option A (automatic, connected devices):
-```bash
-eas build:run --platform android
-```
-Run it once per device (select device each time).
-
-Option B (manual sideload):
-```bash
-# download the APK from EAS build link
-adb install -r path/to/app.apk
-```
-
-8) Push JS-only OTA update (no reinstall needed)
-```bash
-eas update --branch production --message "describe change"
-```
-
-9) Native change workflow (when adding native package or changing native config)
-- Bump runtime version in both files before building:
-   - `app.json`: `"runtimeVersion": "1.1.0"`
-   - `android/app/src/main/res/values/strings.xml`: `<string name="expo_runtime_version">1.1.0</string>`
-- Then rebuild and reinstall:
-```bash
-eas build --platform android --profile production
-eas build:run --platform android
-```
-
-10) Reinstall a previous build (no rebuild)
-```bash
-eas build:run --platform android
-# choose a previous build from the list
-```
-
-11) Housekeeping notes
-- Use one package manager (yarn or npm). Remove other lockfiles: `rm package-lock.json` if using yarn.
-- Add `.expo/` to `.gitignore`.
-- After changing Expo password: `eas logout && eas login`.
-- If builds queue: check https://expo.dev/accounts/<your-account>/builds and cancel old builds or wait.
-
-If you want, I can add a small helper script to automatically bump `strings.xml` when `runtimeVersion` in `app.json` changes, or add an `npm` script to run `eas update` with a prompt for a message.
-
-## Helper scripts added
-
-Added `bump-runtime.js` — Node script that:
-- Accepts a version arg (`node scripts/bump-runtime.js 1.1.0`)
-- If no arg provided, reads `expo.runtimeVersion` from `app.json` and updates `strings.xml`
-- Writes back `app.json` with updated `runtimeVersion` and updates/inserts `<string name="expo_runtime_version">` in `strings.xml`
-
-Added npm scripts in `package.json`:
-- `npm run bump:runtime -- 1.2.0` — set both files to `1.2.0`
-- `npm run bump:runtime:from-appjson` — read `app.json` and sync `strings.xml`
-
-Use these before a native rebuild to keep runtime versions in sync.

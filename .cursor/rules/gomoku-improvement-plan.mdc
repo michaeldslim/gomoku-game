@@ -14,11 +14,11 @@ Last reviewed: 2026-07-10.
 | Phase | Done | Total |
 |-------|------|-------|
 | Phase 0 (P0) | 5 | 5 |
-| Phase 1 (P1) | 1 (+1 partial) | 8 |
+| Phase 1 (P1) | 7 (+1 partial) | 8 |
 | Phase 2 (P2) | 1 | 5 |
 | Phase 3 (P3) | 0 | 4 |
 | Phase 4 (P4) | 0 | 4 |
-| **All** | **7** (+1 partial) | **26** |
+| **All** | **13** (+1 partial) | **26** |
 
 ### Extra (not numbered in original audit)
 
@@ -39,14 +39,14 @@ Last reviewed: 2026-07-10.
 
 ## Phase 1 (P1) — UI / UX
 
-- [ ] **#6 Home** — Language toggle (KO/EN) on intro screen
+- [x] **#6 Home** — Language toggle (KO/EN) on intro screen (`App.tsx`)
 - [x] **#7 Home** — App version footer on intro; test mode shows `TEST master @ N` (`App.tsx`)
-- [ ] **#8 Settings** — Show APP_VERSION + runtimeVersion at bottom
-- [ ] **#9 Leaderboard** — Nickname per run row (not only top card)
-- [ ] **#10 Game** — Undo: revert AI reply too, or relabel button
-- [ ] **#11 Game** — Timer expiry warning before random auto-move
-- [ ] **#12 Game** — Split `Game.tsx` into hooks (`useGameSounds`, `useGameTimer`, `useScoreProgression`)
-- [ ] **#13 README** — Full Features / Project Structure rewrite *(partial done: master-celebration dev test section)*
+- [~] **#8 Settings** — Show APP_VERSION + runtimeVersion at bottom *(skipped — home footer version sufficient)*
+- [x] **#9 Leaderboard** — Nickname per run row; top-only card removed (`leaderboard.ts`, `LeaderboardScreen.tsx`)
+- [x] **#10 Game** — Undo reverts full vs-AI turn (cancel pending AI, invalidate stale callbacks) (`Game.tsx`)
+- [x] **#11 Game** — Timer expiry warning before random auto-move (`useGameTimer.ts`, `Game.tsx`, `i18n.ts`)
+- [x] **#12 Game** — Split `Game.tsx` into hooks (`useGameSounds`, `useGameTimer`, `useScoreProgression`)
+- [x] **#13 README** — Features / Project Structure rewrite (`README.md`)
 
 ---
 
@@ -80,17 +80,18 @@ Last reviewed: 2026-07-10.
 
 ## Suggested next up
 
-1. **P1** #6, #8, #10 — UX quick wins
-2. **P2** #16, #15 — AI reliability / perf
+1. **P2** #16, #15 — AI reliability / perf
+2. **P3** #19, #21 — gameplay polish
 3. **P4** #23, #25 — OTA + tests
 
 ## Files to touch (reference)
 
-- `src/services/leaderboard.ts` — P0-1 ✓
-- `src/components/Game.tsx` — P0-2 ✓, P0-3/4 ✓, P1-10/11/12, P3-19/20/21
+- `src/services/leaderboard.ts` — P0-1 ✓, P1-9 ✓
+- `src/components/Game.tsx` — P0-2 ✓, P0-3/4 ✓, P1-10/11 ✓, P3-19/20/21
+- `src/hooks/` — P1-11/12 ✓ (`useGameSounds`, `useGameTimer`, `useScoreProgression`)
 - `src/utils/gameLogic.ts` — P0-3/5 ✓
 - `src/utils/aiLogic.ts` — P2-14 ✓, P2-15/16/17/18
-- `App.tsx` — P1-7 ✓
+- `App.tsx` — P1-6 ✓, P1-7 ✓
 - `src/constants/scoring.ts` — master threshold + dev test ✓
 - `src/utils/i18n.ts` — new strings
-- `README.md` — P1-13 (partial ✓)
+- `README.md` — P1-13 ✓
