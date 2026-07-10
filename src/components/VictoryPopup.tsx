@@ -5,21 +5,41 @@ import { Language, t } from '../utils/i18n';
 interface Props {
   visible: boolean;
   text?: string;
+  subtitle?: string;
   duration?: number;
   language?: Language;
   backgroundColor?: string;
   textColor?: string;
+  subtitleColor?: string;
   winner?: number | null; // 1 = human(black), 2 = AI(white), 0 = draw
 }
 
-const VictoryPopup: React.FC<Props> = ({ visible, text, duration = 3000, language = 'ko', backgroundColor, textColor, winner = null }) => {
+const VictoryPopup: React.FC<Props> = ({
+  visible,
+  text,
+  subtitle,
+  duration = 3000,
+  language = 'ko',
+  backgroundColor,
+  textColor,
+  subtitleColor,
+  winner = null,
+}) => {
+  const isDraw = winner === 0;
+  const isLoss = winner === 2;
   // Compute default text from winner/language when `text` is not provided.
   let finalText: string;
   if (typeof text === 'string') finalText = text;
   else if (winner === 1) finalText = t(language, 'win');
   else if (winner === 2) finalText = t(language, 'lose');
-  else if (winner === 0) finalText = t(language, 'drawPopup');
+  else if (isDraw) finalText = t(language, 'drawPopup');
   else finalText = t(language, 'win');
+
+  const resolvedBackground =
+    backgroundColor ?? (isDraw ? '#6B7280' : isLoss ? '#000000' : '#FF7BAC');
+  const resolvedTextColor =
+    textColor ?? (isDraw || isLoss ? '#FFFFFF' : '#FFFFFF');
+  const resolvedSubtitleColor = subtitleColor ?? 'rgba(255,255,255,0.92)';
   const scale = useRef(new Animated.Value(0.6)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -57,14 +77,18 @@ const VictoryPopup: React.FC<Props> = ({ visible, text, duration = 3000, languag
       <Animated.View
         style={[
           styles.bubble,
-          { backgroundColor: backgroundColor ?? (winner === 2 ? '#000000' : styles.bubble.backgroundColor) },
+          isDraw && styles.drawBubble,
+          { backgroundColor: resolvedBackground },
           {
             opacity: opacity,
             transform: [{ scale }],
           },
         ]}
       >
-        <Text style={[styles.text, { color: textColor ?? (winner === 2 ? '#FFFFFF' : styles.text.color) }]}>{finalText}</Text>
+        <Text style={[styles.text, { color: resolvedTextColor }]}>{finalText}</Text>
+        {subtitle ? (
+          <Text style={[styles.subtitle, { color: resolvedSubtitleColor }]}>{subtitle}</Text>
+        ) : null}
       </Animated.View>
     </View>
   );
@@ -88,6 +112,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 10,
     elevation: 6,
+    alignItems: 'center',
+  },
+  drawBubble: {
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    shadowOpacity: 0.15,
   },
   text: {
     fontSize: 28,
@@ -95,6 +125,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     letterSpacing: 1,
+  },
+  subtitle: {
+    marginTop: 4,
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'center',
   },
 });
 

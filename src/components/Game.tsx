@@ -92,6 +92,8 @@ const Game: React.FC<GameProps> = ({
     fireworksNonce,
     showVictoryPopup,
     popupText,
+    popupScoreGain,
+    showExpertToast,
     awardHumanWin,
     resetCelebration,
   } = useScoreProgression({
@@ -461,6 +463,7 @@ const Game: React.FC<GameProps> = ({
         visible={showVictoryPopup}
         winner={winner}
         text={popupText}
+        subtitle={popupScoreGain != null && popupScoreGain > 0 ? `+${popupScoreGain}` : undefined}
         duration={popupText ? 4500 : 3000}
         language={language}
       />
@@ -473,19 +476,26 @@ const Game: React.FC<GameProps> = ({
     </View>
   );
 
+  const expertToastBlock = showExpertToast ? (
+    <View style={styles.expertToast} pointerEvents="none">
+      <Text style={styles.expertToastText}>{t(language, 'expertSwitchToast')}</Text>
+    </View>
+  ) : null;
+
   if (isTabletLandscape) {
     return (
       <View style={[styles.container, styles.containerLandscape]}>
         <View style={styles.landscapeSidebar}>
           <ScrollView contentContainerStyle={styles.landscapeSidebarContent} showsVerticalScrollIndicator={false}>
             {gameStatusBlock}
-            {scoreBannerBlock}
+            {vsAI && scoreBannerBlock}
             {controlsBlock}
           </ScrollView>
         </View>
         <View style={styles.landscapeBoardColumn}>
           {boardBlock}
         </View>
+        {expertToastBlock}
       </View>
     );
   }
@@ -493,9 +503,10 @@ const Game: React.FC<GameProps> = ({
   return (
     <View style={styles.container}>
       {gameStatusBlock}
-      {scoreBannerBlock}
+      {vsAI && scoreBannerBlock}
       {controlsBlock}
       {boardBlock}
+      {expertToastBlock}
     </View>
   );
 };
@@ -740,6 +751,28 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: '#ffffff',
+  },
+  expertToast: {
+    position: 'absolute',
+    bottom: 28,
+    left: 24,
+    right: 24,
+    backgroundColor: 'rgba(30, 64, 175, 0.94)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    zIndex: 10000,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  expertToastText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });
 

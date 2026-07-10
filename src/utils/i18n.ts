@@ -26,6 +26,7 @@ export interface Translations {
   openSettings: string;
   aiThinking: string;
   scoreGreat: string;
+  expertSwitchToast: string;
   timerExpiryWarning: string;
 
   // GameStatus
@@ -122,6 +123,7 @@ export const translations: Record<Language, Translations> = {
     openSettings: '⚙️ 열기',
     aiThinking: 'AI 생각 중...',
     scoreGreat: '참 잘했어요!',
+    expertSwitchToast: '고급 모드로 전환되었습니다 (80+)',
     timerExpiryWarning: '시간 초과 — 곧 임의 위치에 둡니다',
 
     // GameStatus
@@ -216,6 +218,7 @@ export const translations: Record<Language, Translations> = {
     openSettings: '⚙️ Open',
     aiThinking: 'AI thinking...',
     scoreGreat: 'You did great!',
+    expertSwitchToast: 'Switched to Expert mode (80+)',
     timerExpiryWarning: 'Time up soon — random move next',
 
     // GameStatus

@@ -33,17 +33,37 @@ export function useScoreProgression({
   const [fireworksNonce, setFireworksNonce] = useState(0);
   const [showVictoryPopup, setShowVictoryPopup] = useState<boolean>(false);
   const [popupText, setPopupText] = useState<string | undefined>(undefined);
+  const [popupScoreGain, setPopupScoreGain] = useState<number | null>(null);
+  const [showExpertToast, setShowExpertToast] = useState<boolean>(false);
 
   const prevTotalScoreRef = useRef<number>(initialScore);
   const hasMountedScoreEffectRef = useRef<boolean>(false);
   const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expertToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const masterCelebrationPendingRef = useRef(false);
+  const lastWinGainRef = useRef(0);
 
   const clearCelebrationTimeout = () => {
     if (popupTimeoutRef.current) {
       clearTimeout(popupTimeoutRef.current);
       popupTimeoutRef.current = null;
     }
+  };
+
+  const clearExpertToastTimeout = () => {
+    if (expertToastTimeoutRef.current) {
+      clearTimeout(expertToastTimeoutRef.current);
+      expertToastTimeoutRef.current = null;
+    }
+  };
+
+  const showExpertSwitchToast = () => {
+    clearExpertToastTimeout();
+    setShowExpertToast(true);
+    expertToastTimeoutRef.current = setTimeout(() => {
+      setShowExpertToast(false);
+      expertToastTimeoutRef.current = null;
+    }, 2500);
   };
 
   const launchFireworks = () => {
@@ -57,10 +77,14 @@ export function useScoreProgression({
 
   const resetCelebration = () => {
     clearCelebrationTimeout();
+    clearExpertToastTimeout();
     dismissFireworks();
     setShowVictoryPopup(false);
     setPopupText(undefined);
+    setPopupScoreGain(null);
+    setShowExpertToast(false);
     masterCelebrationPendingRef.current = false;
+    lastWinGainRef.current = 0;
   };
 
   useEffect(() => {
@@ -74,11 +98,12 @@ export function useScoreProgression({
     const gained = Math.max(0, 10 - undosUsedThisGameRef.current);
     setTotalScore((prev) => {
       const actualGained = Math.min(gained, MASTER_SCORE_THRESHOLD - prev);
+      lastWinGainRef.current = actualGained;
       const next = prev + actualGained;
       if (next >= MASTER_SCORE_THRESHOLD && prev < MASTER_SCORE_THRESHOLD) {
         masterCelebrationPendingRef.current = true;
       }
-      if (next >= EXPERT_THRESHOLD) {
+      if (next >= EXPERT_THRESHOLD && prev < EXPERT_THRESHOLD) {
         setAiDifficulty('expert');
       }
       return next;
@@ -90,16 +115,35 @@ export function useScoreProgression({
     if (totalScore >= MASTER_SCORE_THRESHOLD || masterCelebrationPendingRef.current) return;
     clearCelebrationTimeout();
     launchFireworks();
+    setPopupText(undefined);
+    setPopupScoreGain(lastWinGainRef.current > 0 ? lastWinGainRef.current : null);
     setShowVictoryPopup(true);
     popupTimeoutRef.current = setTimeout(() => {
       dismissFireworks();
       setShowVictoryPopup(false);
+      setPopupScoreGain(null);
       popupTimeoutRef.current = null;
     }, 3000);
     return () => {
       clearCelebrationTimeout();
     };
   }, [winner, totalScore]);
+
+  useEffect(() => {
+    if (winner !== 0) return;
+    clearCelebrationTimeout();
+    dismissFireworks();
+    setPopupText(undefined);
+    setPopupScoreGain(null);
+    setShowVictoryPopup(true);
+    popupTimeoutRef.current = setTimeout(() => {
+      setShowVictoryPopup(false);
+      popupTimeoutRef.current = null;
+    }, 3000);
+    return () => {
+      clearCelebrationTimeout();
+    };
+  }, [winner]);
 
   useEffect(() => {
     if (winner !== AI_PLAYER) return;
@@ -131,11 +175,21 @@ export function useScoreProgression({
       masterCelebrationPendingRef.current ||
       (totalScore >= MASTER_SCORE_THRESHOLD && prevTotalScoreRef.current < MASTER_SCORE_THRESHOLD);
 
+    const crossedExpert =
+      totalScore >= EXPERT_THRESHOLD &&
+      prevTotalScoreRef.current < EXPERT_THRESHOLD &&
+      !crossedMaster;
+
+    if (crossedExpert) {
+      showExpertSwitchToast();
+    }
+
     if (crossedMaster && totalScore >= MASTER_SCORE_THRESHOLD) {
       masterCelebrationPendingRef.current = false;
       clearCelebrationTimeout();
       launchFireworks();
       setPopupText(t(language, 'scoreGreat'));
+      setPopupScoreGain(null);
       setShowVictoryPopup(true);
       popupTimeoutRef.current = setTimeout(() => {
         void (async () => {
@@ -182,6 +236,8 @@ export function useScoreProgression({
     fireworksNonce,
     showVictoryPopup,
     popupText,
+    popupScoreGain,
+    showExpertToast,
     awardHumanWin,
     resetCelebration,
     masterCelebrationPendingRef,
