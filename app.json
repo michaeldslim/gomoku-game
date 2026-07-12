@@ -3,7 +3,7 @@
     "name": "Gomoku",
     "slug": "gomoku-game",
     "scheme": "gomoku-game",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "orientation": "portrait",
     "icon": "./assets/icon-ios-square.png",
     "userInterfaceStyle": "light",
@@ -38,7 +38,7 @@
     "updates": {
       "url": "https://u.expo.dev/174f040a-54d5-40cd-927a-c7a304b8d90a"
     },
-    "runtimeVersion": "2.1.1",
+    "runtimeVersion": "2.1.2",
     "extra": {
       "eas": {
         "projectId": "174f040a-54d5-40cd-927a-c7a304b8d90a"
