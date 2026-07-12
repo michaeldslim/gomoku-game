@@ -17,6 +17,7 @@ import {
   INTERMEDIATE_TOP_POOL_MIN,
   UserSettings,
 } from '../services/settings';
+import { SHOW_BG_MUSIC_SETTINGS } from '../constants/app';
 import { t } from '../utils/i18n';
 
 interface Props {
@@ -122,45 +123,47 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
           <Text style={styles.hint}>{t(language, 'nicknameHint')}</Text>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.label}>{t(language, 'bgMusicLabel')}</Text>
-          <Text style={styles.hint}>{t(language, 'bgMusicHint')}</Text>
-          <View style={styles.chipRow}>
-            <TouchableOpacity
-              style={[styles.chip, bgMusicEnabled && styles.chipActive]}
-              onPress={() => { setBgMusicEnabled(true); autoSave({ bgMusicEnabled: true }); }}
-            >
-              <Text style={[styles.chipText, bgMusicEnabled && styles.chipTextActive]}>{t(language, 'on')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.chip, !bgMusicEnabled && styles.chipActive]}
-              onPress={() => { setBgMusicEnabled(false); autoSave({ bgMusicEnabled: false }); }}
-            >
-              <Text style={[styles.chipText, !bgMusicEnabled && styles.chipTextActive]}>{t(language, 'off')}</Text>
-            </TouchableOpacity>
-          </View>
-          {bgMusicEnabled && (
-            <View style={styles.sliderRow}>
-              <Text style={styles.sliderLabel}>{t(language, 'volume')}: {bgMusicVolume.toFixed(1)}</Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={1}
-                step={0.1}
-                value={bgMusicVolume}
-                onValueChange={(v) => setBgMusicVolume(Math.round(v * 10) / 10)}
-                onSlidingComplete={(v) => {
-                  const rounded = Math.round(v * 10) / 10;
-                  setBgMusicVolume(rounded);
-                  autoSave({ bgMusicVolume: rounded });
-                }}
-                minimumTrackTintColor="#457B9D"
-                maximumTrackTintColor="#D1D5DB"
-                thumbTintColor="#457B9D"
-              />
+        {SHOW_BG_MUSIC_SETTINGS && (
+          <View style={styles.card}>
+            <Text style={styles.label}>{t(language, 'bgMusicLabel')}</Text>
+            <Text style={styles.hint}>{t(language, 'bgMusicHint')}</Text>
+            <View style={styles.chipRow}>
+              <TouchableOpacity
+                style={[styles.chip, bgMusicEnabled && styles.chipActive]}
+                onPress={() => { setBgMusicEnabled(true); autoSave({ bgMusicEnabled: true }); }}
+              >
+                <Text style={[styles.chipText, bgMusicEnabled && styles.chipTextActive]}>{t(language, 'on')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.chip, !bgMusicEnabled && styles.chipActive]}
+                onPress={() => { setBgMusicEnabled(false); autoSave({ bgMusicEnabled: false }); }}
+              >
+                <Text style={[styles.chipText, !bgMusicEnabled && styles.chipTextActive]}>{t(language, 'off')}</Text>
+              </TouchableOpacity>
             </View>
-          )}
-        </View>
+            {bgMusicEnabled && (
+              <View style={styles.sliderRow}>
+                <Text style={styles.sliderLabel}>{t(language, 'volume')}: {bgMusicVolume.toFixed(1)}</Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={1}
+                  step={0.1}
+                  value={bgMusicVolume}
+                  onValueChange={(v) => setBgMusicVolume(Math.round(v * 10) / 10)}
+                  onSlidingComplete={(v) => {
+                    const rounded = Math.round(v * 10) / 10;
+                    setBgMusicVolume(rounded);
+                    autoSave({ bgMusicVolume: rounded });
+                  }}
+                  minimumTrackTintColor="#457B9D"
+                  maximumTrackTintColor="#D1D5DB"
+                  thumbTintColor="#457B9D"
+                />
+              </View>
+            )}
+          </View>
+        )}
 
         <View style={styles.card}>
           <Text style={styles.label}>{t(language, 'timerLabel')}</Text>

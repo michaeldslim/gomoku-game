@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Audio } from 'expo-av';
+import { BM_MP3 } from '../constants/app';
 import { MASTER_SCORE_THRESHOLD } from '../constants/scoring';
 import { AI_PLAYER } from '../constants/game';
 
@@ -94,7 +95,7 @@ export function useGameSounds({
 
         try {
           const bgResult = await Audio.Sound.createAsync(
-            require('../../assets/sounds/bm.mp3'),
+            BM_MP3,
             { shouldPlay: bgMusicEnabled, isLooping: true, volume: bgMusicVolume },
           );
 
