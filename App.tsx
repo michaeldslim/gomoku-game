@@ -12,19 +12,61 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Game from './src/components/Game';
+import { HomePlayerPreview } from './src/components/HomePlayerPreview';
+import { PhoneLandscapeWarning } from './src/components/PhoneLandscapeWarning';
+import { useCareer } from './src/career/CareerProvider';
+import { getCareerProgressCopy } from './src/career/careerLabels';
 import InstructionScreen from './src/screens/InstructionScreen';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import CareerScreen from './src/screens/CareerScreen';
+import { CareerProvider } from './src/career/CareerProvider';
 import { addLeaderboardEntry, fetchStartupScore, startFreshRun } from './src/services/leaderboard';
 import { defaultUserSettings, fetchUserSettings, saveUserSettings, UserSettings } from './src/services/settings';
 import { APP_VERSION } from './src/constants/app';
 import { MASTER_SCORE_THRESHOLD, USE_TEST_MASTER_THRESHOLD } from './src/constants/scoring';
+import { createCareerTranslate } from './src/utils/careerI18n';
 import { Language, t } from './src/utils/i18n';
+import { colors } from './src/constants/colors';
+import { useScreenLayout } from './src/hooks/useScreenLayout';
 
-type Screen = 'home' | 'game' | 'leaderboard' | 'settings';
+type Screen = 'home' | 'game' | 'leaderboard' | 'settings' | 'career';
+
+interface HomePlayerPreviewWithCareerProps {
+  language: Language;
+  playerAvatarId: UserSettings['playerAvatarId'];
+  aiAvatarId: UserSettings['aiAvatarId'];
+  careerModeEnabled: boolean;
+  onCareerPress: () => void;
+}
+
+function HomePlayerPreviewWithCareer({
+  language,
+  playerAvatarId,
+  aiAvatarId,
+  careerModeEnabled,
+  onCareerPress,
+}: HomePlayerPreviewWithCareerProps) {
+  const { careerState, loaded: careerLoaded } = useCareer();
+  const careerTranslate = createCareerTranslate(language);
+  const careerBadge =
+    careerModeEnabled && careerLoaded
+      ? getCareerProgressCopy(careerTranslate, careerState).primary
+      : null;
+
+  return (
+    <HomePlayerPreview
+      language={language}
+      playerAvatarId={playerAvatarId}
+      aiAvatarId={aiAvatarId}
+      careerBadge={careerBadge}
+      onCareerPress={onCareerPress}
+    />
+  );
+}
 
 function AppContent() {
-  // Lock phones to portrait; let tablets rotate freely
+  // Phones → portrait lock. Tablets (Galaxy Tab primary QA) → unlock for landscape HUD.
   useEffect(() => {
     (async () => {
       const deviceType = await Device.getDeviceTypeAsync();
@@ -43,6 +85,7 @@ function AppContent() {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const prevScreenRef = useRef<Screen>('home');
   const settingsFromRef = useRef<'home' | 'game'>('home');
+  const careerFromRef = useRef<Screen>('home');
 
   useEffect(() => {
     void (async () => {
@@ -71,9 +114,19 @@ function AppContent() {
     setScreen('settings');
   }, []);
 
+  const goToCareer = useCallback((from: Screen) => {
+    careerFromRef.current = from;
+    setScreen('career');
+  }, []);
+
+  const handleCareerBack = useCallback(() => {
+    setScreen(careerFromRef.current === 'game' ? 'game' : 'home');
+  }, []);
+
   const handleScoreUpdate = useCallback(
     async (newScore: number) => {
       await addLeaderboardEntry(newScore);
+      setStartupScore(newScore);
     },
     []
   );
@@ -96,8 +149,8 @@ function AppContent() {
     setSettings(saved);
   }, []);
 
-  const handleLanguageChange = useCallback(async (lang: Language) => {
-    const saved = await saveUserSettings({ ...settings, language: lang });
+  const handleApplyExpertPool = useCallback(async (pool: number) => {
+    const saved = await saveUserSettings({ ...settings, expertTopPool: pool });
     setSettings(saved);
   }, [settings]);
 
@@ -105,12 +158,22 @@ function AppContent() {
     setScreen(settingsFromRef.current);
   }, []);
 
+  const { isTabletLandscape, menuHorizontalInset } = useScreenLayout();
+
+  const withOrientationGuide = (node: React.ReactNode) => (
+    <>
+      {node}
+      <PhoneLandscapeWarning language={settings.language} />
+    </>
+  );
+
+  const renderScreen = () => {
   if (
     screen === 'game' ||
     (screen === 'leaderboard' && prevScreenRef.current === 'game') ||
     (screen === 'settings' && settingsFromRef.current === 'game')
   ) {
-    return (
+    return withOrientationGuide(
       <SafeAreaView style={styles.container}>
         <Game
           initialScore={startupScore}
@@ -124,6 +187,10 @@ function AppContent() {
           language={settings.language}
           bgMusicEnabled={settings.bgMusicEnabled}
           bgMusicVolume={settings.bgMusicVolume}
+          playerAvatarId={settings.playerAvatarId}
+          aiAvatarId={settings.aiAvatarId}
+          careerModeEnabled={settings.careerModeEnabled}
+          onCareer={() => goToCareer('game')}
         />
         {screen === 'leaderboard' && (
           <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
@@ -139,70 +206,86 @@ function AppContent() {
               initialSettings={settings}
               onSave={handleSaveSettings}
               onBack={handleSettingsBack}
+              onOpenCareer={() => goToCareer('game')}
             />
           </View>
         )}
         <StatusBar style="auto" />
-      </SafeAreaView>
+      </SafeAreaView>,
     );
   }
 
   if (screen === 'leaderboard') {
-    return (
+    return withOrientationGuide(
       <View style={styles.container}>
         <LeaderboardScreen
           onBack={() => setScreen('home')}
           language={settings.language}
         />
         <StatusBar style="auto" />
-      </View>
+      </View>,
     );
   }
 
   if (screen === 'settings') {
-    return (
+    return withOrientationGuide(
       <View style={styles.container}>
         <SettingsScreen
           initialSettings={settings}
           onSave={handleSaveSettings}
           onBack={handleSettingsBack}
+          onOpenCareer={() => goToCareer('home')}
         />
         <StatusBar style="auto" />
-      </View>
+      </View>,
+    );
+  }
+
+  if (screen === 'career') {
+    return withOrientationGuide(
+      <CareerScreen
+        language={settings.language}
+        careerModeEnabled={settings.careerModeEnabled}
+        playerAvatarId={settings.playerAvatarId}
+        expertTopPool={settings.expertTopPool}
+        currentScore={startupScore}
+        onBack={handleCareerBack}
+        onOpenSettings={() => {
+          settingsFromRef.current = careerFromRef.current === 'game' ? 'game' : 'home';
+          setScreen('settings');
+        }}
+        onApplyExpertPool={(pool) => void handleApplyExpertPool(pool)}
+      />,
     );
   }
 
   // Home screen
   const lang = settings.language;
-  return (
+  return withOrientationGuide(
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t(lang, 'appTitle')}</Text>
-        <View style={styles.languageRow}>
-          <View style={styles.chipRow}>
-            <TouchableOpacity
-              style={[styles.chip, lang === 'ko' && styles.chipActive]}
-              onPress={() => handleLanguageChange('ko')}
-              disabled={!settingsLoaded}
-            >
-              <Text style={[styles.chipText, lang === 'ko' && styles.chipTextActive]}>한국어</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.chip, lang === 'en' && styles.chipActive]}
-              onPress={() => handleLanguageChange('en')}
-              disabled={!settingsLoaded}
-            >
-              <Text style={[styles.chipText, lang === 'en' && styles.chipTextActive]}>English</Text>
-            </TouchableOpacity>
-          </View>
+      <View
+        style={[
+          styles.homeFrame,
+          isTabletLandscape && { paddingHorizontal: menuHorizontalInset },
+        ]}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>{t(lang, 'appTitle')}</Text>
         </View>
-      </View>
 
       <ScrollView
-        style={styles.startContainer}
+        style={[styles.startContainer, isTabletLandscape && styles.startContainerWide]}
         contentContainerStyle={styles.startContainerContent}
         showsVerticalScrollIndicator
       >
+        <HomePlayerPreviewWithCareer
+          language={lang}
+          playerAvatarId={settings.playerAvatarId}
+          aiAvatarId={settings.aiAvatarId}
+          careerModeEnabled={settings.careerModeEnabled}
+          onCareerPress={() => goToCareer('home')}
+        />
+
         <InstructionScreen language={lang} standalone={false} />
 
         <TouchableOpacity
@@ -236,9 +319,17 @@ function AppContent() {
           {USE_TEST_MASTER_THRESHOLD ? ` · TEST master @ ${MASTER_SCORE_THRESHOLD}` : ''}
         </Text>
       </ScrollView>
+      </View>
 
       <StatusBar style="auto" />
-    </SafeAreaView>
+    </SafeAreaView>,
+  );
+  };
+
+  return (
+    <CareerProvider careerModeEnabled={settings.careerModeEnabled}>
+      {renderScreen()}
+    </CareerProvider>
   );
 }
 
@@ -253,7 +344,10 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3EFE7',
+    backgroundColor: colors.background,
+  },
+  homeFrame: {
+    flex: 1,
   },
   header: {
     paddingTop: 12,
@@ -266,49 +360,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#212529',
   },
-  languageRow: {
-    marginTop: 10,
-    alignItems: 'center',
-    gap: 6,
-  },
-  languageLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6C757D',
-  },
-  chipRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  chip: {
-    minWidth: 72,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-  },
-  chipActive: {
-    backgroundColor: '#457B9D',
-    borderColor: '#457B9D',
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
-  },
   startContainer: {
     flex: 1,
     marginTop: 4,
     marginHorizontal: 14,
     marginBottom: 16,
-    backgroundColor: '#F3EFE7',
+    backgroundColor: colors.background,
     borderRadius: 12,
+  },
+  startContainerWide: {
+    marginHorizontal: 0,
   },
   startContainerContent: {
     padding: 8,
@@ -330,7 +391,7 @@ const styles = StyleSheet.create({
   },
   startButton: {
     marginTop: 10,
-    backgroundColor: '#457B9D',
+    backgroundColor: colors.button,
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',

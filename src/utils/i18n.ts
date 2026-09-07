@@ -87,6 +87,24 @@ export interface Translations {
   expertHard: string;
   failedSaveSettings: string;
   languageSettingLabel: string;
+  avatarsSectionLabel: string;
+  playerAvatarLabel: string;
+  playerAvatarHint: string;
+  aiAvatarLabel: string;
+  aiAvatarHint: string;
+  avatarsSectionToggleHint: string;
+  showSection: string;
+  hideSection: string;
+  playerLabel: string;
+  aiLabel: string;
+  player2Label: string;
+  rotateToPortraitTitle: string;
+  rotateToPortraitBodyLine1: string;
+  rotateToPortraitBodyLine2: string;
+  rotateToLandscapeTitle: string;
+  rotateToLandscapeBodyLine1: string;
+  rotateToLandscapeBodyLine2: string;
+  playPortraitAnyway: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -184,6 +202,24 @@ export const translations: Record<Language, Translations> = {
     expertHard: '어려움',
     failedSaveSettings: '설정을 저장하지 못했습니다. 다시 시도해 주세요.',
     languageSettingLabel: '언어',
+    avatarsSectionLabel: '아바타',
+    playerAvatarLabel: '플레이어 아바타',
+    playerAvatarHint: '게임 화면과 승진 연출에 표시됩니다.',
+    aiAvatarLabel: 'AI 아바타',
+    aiAvatarHint: 'AI 대전에서 상대 아바타로 표시됩니다.',
+    avatarsSectionToggleHint: '설정 화면에서 아바타 선택 영역을 펼치거나 접습니다.',
+    showSection: '보이기',
+    hideSection: '숨기기',
+    playerLabel: '플레이어',
+    aiLabel: 'AI',
+    player2Label: 'P2',
+    rotateToPortraitTitle: '세로 모드로 돌려주세요',
+    rotateToPortraitBodyLine1: '휴대폰에서는 세로 화면에 최적화되어 있습니다.',
+    rotateToPortraitBodyLine2: '기기를 세로로 돌려 주세요.',
+    rotateToLandscapeTitle: '가로 모드로 돌려주세요',
+    rotateToLandscapeBodyLine1: '태블릿에서는 가로 화면에 최적화되어 있습니다.',
+    rotateToLandscapeBodyLine2: '기기를 가로로 돌려 주세요.',
+    playPortraitAnyway: '그래도 세로로 플레이',
   },
   en: {
     // Home
@@ -279,6 +315,24 @@ export const translations: Record<Language, Translations> = {
     expertHard: 'Hard',
     failedSaveSettings: 'Failed to save settings. Please try again.',
     languageSettingLabel: 'Language',
+    avatarsSectionLabel: 'Avatars',
+    playerAvatarLabel: 'Player avatar',
+    playerAvatarHint: 'Shown during play and promotion celebrations.',
+    aiAvatarLabel: 'AI avatar',
+    aiAvatarHint: 'Shown as the opponent in vs AI mode.',
+    avatarsSectionToggleHint: 'Expand or collapse the avatar picker on this settings screen.',
+    showSection: 'Show',
+    hideSection: 'Hide',
+    playerLabel: 'Player',
+    aiLabel: 'AI',
+    player2Label: 'P2',
+    rotateToPortraitTitle: 'Rotate your device',
+    rotateToPortraitBodyLine1: 'Gomoku works best in portrait mode on phones.',
+    rotateToPortraitBodyLine2: 'Please turn your device upright.',
+    rotateToLandscapeTitle: 'Rotate your tablet',
+    rotateToLandscapeBodyLine1: 'Gomoku is optimized for landscape on tablets.',
+    rotateToLandscapeBodyLine2: 'Please turn your device sideways.',
+    playPortraitAnyway: 'Play in portrait anyway',
   },
 };
 

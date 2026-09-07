@@ -1,4 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  DEFAULT_AI_AVATAR_ID,
+  DEFAULT_PLAYER_AVATAR_ID,
+  resolveAvatarId,
+  type AvatarId,
+} from '../constants/avatars';
 import { EXPERT_TOP_POOL_EASY, EXPERT_TOP_POOL_HARD } from '../utils/aiLogic';
 import { Language } from '../utils/i18n';
 
@@ -12,6 +18,7 @@ export const DEFAULT_TIMER_ENABLED = false;
 export const DEFAULT_BG_MUSIC_ENABLED = false;
 export const DEFAULT_BG_MUSIC_VOLUME = 0.2;
 export const DEFAULT_LANGUAGE: Language = 'ko';
+export const DEFAULT_CAREER_MODE_ENABLED = false;
 
 export interface UserSettings {
   userHandle: string;
@@ -21,6 +28,9 @@ export interface UserSettings {
   bgMusicEnabled: boolean;
   bgMusicVolume: number;
   language: Language;
+  playerAvatarId: AvatarId;
+  aiAvatarId: AvatarId;
+  careerModeEnabled: boolean;
 }
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -77,6 +87,13 @@ const normalizeLanguage = (value: unknown): Language => {
   return DEFAULT_LANGUAGE;
 };
 
+const normalizeCareerModeEnabled = (value: unknown): boolean => {
+  if (typeof value !== 'boolean') {
+    return DEFAULT_CAREER_MODE_ENABLED;
+  }
+  return value;
+};
+
 const normalizeSettings = (raw: unknown): UserSettings => {
   const source = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {};
 
@@ -88,6 +105,9 @@ const normalizeSettings = (raw: unknown): UserSettings => {
     bgMusicEnabled: normalizeBgMusicEnabled(source.bgMusicEnabled),
     bgMusicVolume: normalizeBgMusicVolume(source.bgMusicVolume),
     language: normalizeLanguage(source.language),
+    playerAvatarId: resolveAvatarId(source.playerAvatarId, DEFAULT_PLAYER_AVATAR_ID),
+    aiAvatarId: resolveAvatarId(source.aiAvatarId, DEFAULT_AI_AVATAR_ID),
+    careerModeEnabled: normalizeCareerModeEnabled(source.careerModeEnabled),
   };
 };
 
@@ -99,6 +119,9 @@ export const defaultUserSettings = (): UserSettings => ({
   bgMusicEnabled: DEFAULT_BG_MUSIC_ENABLED,
   bgMusicVolume: DEFAULT_BG_MUSIC_VOLUME,
   language: DEFAULT_LANGUAGE,
+  playerAvatarId: DEFAULT_PLAYER_AVATAR_ID,
+  aiAvatarId: DEFAULT_AI_AVATAR_ID,
+  careerModeEnabled: DEFAULT_CAREER_MODE_ENABLED,
 });
 
 export async function fetchUserSettings(): Promise<UserSettings> {

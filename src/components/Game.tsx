@@ -4,6 +4,12 @@ import Board from './Board';
 import GameStatus from './GameStatus';
 import Fireworks from './Fireworks';
 import VictoryPopup from './VictoryPopup';
+import { PromotionOverlay } from './PromotionOverlay';
+import { PlayerAvatar } from './PlayerAvatar';
+import { GameSideHud } from './GameSideHud';
+import type { AvatarId } from '../constants/avatars';
+import { DEFAULT_AI_AVATAR_ID, DEFAULT_PLAYER_AVATAR_ID } from '../constants/avatars';
+import { colors } from '../constants/colors';
 import {
   initializeBoard,
   isValidMove,
@@ -14,10 +20,16 @@ import {
 } from '../utils/gameLogic';
 import { findBestMove } from '../utils/aiLogic';
 import { MASTER_SCORE_THRESHOLD } from '../constants/scoring';
-import { AI_PLAYER, EXPERT_THRESHOLD, HUMAN_PLAYER } from '../constants/game';
+import { AI_MOVE_DELAY_MS, AI_PLAYER, EXPERT_THRESHOLD, HUMAN_PLAYER } from '../constants/game';
 import { useGameSounds } from '../hooks/useGameSounds';
 import { useGameTimer } from '../hooks/useGameTimer';
 import { useScoreProgression } from '../hooks/useScoreProgression';
+import { useScreenLayout } from '../hooks/useScreenLayout';
+import { useCareer } from '../career/CareerProvider';
+import { resolveCareerAiDifficulty } from '../career/careerAiMapping';
+import { careerRankKey, getCareerProgressCopy } from '../career/careerLabels';
+import type { PromotionResult } from '../types/career';
+import { createCareerTranslate } from '../utils/careerI18n';
 import { t } from '../utils/i18n';
 
 interface GameProps {
@@ -32,6 +44,10 @@ interface GameProps {
   language?: 'ko' | 'en';
   bgMusicEnabled?: boolean;
   bgMusicVolume?: number;
+  playerAvatarId?: AvatarId;
+  aiAvatarId?: AvatarId;
+  careerModeEnabled?: boolean;
+  onCareer?: () => void;
 }
 
 const Game: React.FC<GameProps> = ({
@@ -46,11 +62,16 @@ const Game: React.FC<GameProps> = ({
   language = 'ko',
   bgMusicEnabled = false,
   bgMusicVolume = 0.2,
+  playerAvatarId = DEFAULT_PLAYER_AVATAR_ID,
+  aiAvatarId = DEFAULT_AI_AVATAR_ID,
+  careerModeEnabled = false,
+  onCareer,
 }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const isTablet = Math.min(screenWidth, screenHeight) >= 600;
-  const isLandscape = screenWidth > screenHeight;
-  const isTabletLandscape = isTablet && isLandscape;
+  const { isWideLayout, boardColumnWidth, boardCenterWidth, sidePanelWidth, isCompactPlayScreen } =
+    useScreenLayout();
+  const { careerState, loaded: careerLoaded, recordMatchResult } = useCareer();
+  const ct = createCareerTranslate(language);
 
   const [board, setBoard] = useState<number[][]>(() =>
     initializeBoard(resolveBoardSizeFromWindow(screenWidth, screenHeight)),
@@ -70,6 +91,11 @@ const Game: React.FC<GameProps> = ({
   const [winningCells, setWinningCells] = useState<{ row: number; col: number }[] | null>(null);
   const [boardSize, setBoardSize] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
   const [boardCenterTrigger, setBoardCenterTrigger] = useState(0);
+  const [showPromotionOverlay, setShowPromotionOverlay] = useState(false);
+  const [promotedRank, setPromotedRank] = useState<PromotionResult['promoted']>(null);
+
+  const gameGenerationRef = useRef(0);
+  const recordedCareerGenerationRef = useRef(-1);
 
   const aiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const boardRef = useRef<number[][]>(
@@ -230,7 +256,7 @@ const Game: React.FC<GameProps> = ({
       const { row, col } = findBestMove(liveBoard, AI_PLAYER, aiDifficulty, aiMoveOptions);
       makeMove(row, col, AI_PLAYER, liveBoard);
       setAiThinking(false);
-    }, 1000);
+    }, AI_MOVE_DELAY_MS);
   }, [aiDifficulty, expertTopPool, intermediateTopPoolSize, makeMove]);
 
   const handleCellPress = (row: number, col: number) => {
@@ -246,6 +272,9 @@ const Game: React.FC<GameProps> = ({
   };
 
   const handleRestart = ({ forceHumanStart = false }: { forceHumanStart?: boolean } = {}) => {
+    gameGenerationRef.current += 1;
+    setShowPromotionOverlay(false);
+    setPromotedRank(null);
     undoGenerationRef.current += 1;
     cancelPendingAI();
 
@@ -305,7 +334,87 @@ const Game: React.FC<GameProps> = ({
     }
   }, [currentPlayer, vsAI, winner, aiThinking, makeAIMove, pauseTimer]);
 
-  const boardColumnWidth = isTabletLandscape ? screenWidth * 0.62 : screenWidth;
+  useEffect(() => {
+    if (winner === null || !vsAI || !careerModeEnabled || !careerLoaded) {
+      return;
+    }
+
+    if (recordedCareerGenerationRef.current === gameGenerationRef.current) {
+      return;
+    }
+
+    recordedCareerGenerationRef.current = gameGenerationRef.current;
+
+    const isDraw = winner === 0;
+    const won = winner === HUMAN_PLAYER;
+    const result = recordMatchResult({
+      won,
+      aiDifficulty: resolveCareerAiDifficulty(aiDifficulty, expertTopPool),
+      isDraw,
+    });
+
+    if (result?.promoted) {
+      setPromotedRank(result.promoted);
+      setShowPromotionOverlay(true);
+    }
+  }, [
+    aiDifficulty,
+    careerLoaded,
+    careerModeEnabled,
+    expertTopPool,
+    recordMatchResult,
+    vsAI,
+    winner,
+  ]);
+
+  const careerBadge =
+    vsAI && careerModeEnabled && careerLoaded
+      ? getCareerProgressCopy(ct, careerState).primary
+      : null;
+
+  const promotionTitle =
+    promotedRank === 'ceo' ? ct('ceoReached.title') : ct('promoted.title');
+  const promotionSubtitle =
+    promotedRank === 'ceo'
+      ? ct('ceoReached.subtitle')
+      : promotedRank
+        ? ct('promoted.subtitle', { rank: ct(careerRankKey(promotedRank)) })
+        : '';
+
+  const activeBoardWidth = isWideLayout ? boardCenterWidth : boardColumnWidth;
+
+  const turnStatusText =
+    winner === null
+      ? currentPlayer === HUMAN_PLAYER
+        ? t(language, 'currentTurnBlack')
+        : t(language, 'currentTurnWhite')
+      : winner === 0
+        ? t(language, 'draw')
+        : winner === HUMAN_PLAYER
+          ? t(language, 'blackWins')
+          : t(language, 'whiteWins');
+
+  const canUndo = undoCount > 0 && boardHistory.length > 0 && winner === null;
+
+  const isHumanTurn = winner === null && currentPlayer === HUMAN_PLAYER;
+  const isOpponentTurn = winner === null && currentPlayer === AI_PLAYER;
+
+  const avatarRowBlock = (
+    <View style={[styles.avatarRow, winner === null && styles.avatarRowPlaying]}>
+      <View style={[styles.avatarSlot, isHumanTurn && styles.avatarSlotActive]}>
+        <PlayerAvatar avatarId={playerAvatarId} size="sm" />
+        <Text style={[styles.avatarLabel, isCompactPlayScreen && styles.avatarLabelCompact]}>
+          {vsAI ? t(language, 'playerLabel') : 'P1'}
+        </Text>
+      </View>
+      <View style={[styles.avatarSlot, isOpponentTurn && styles.avatarSlotActive]}>
+        <PlayerAvatar avatarId={aiAvatarId} size="sm" />
+        <Text style={[styles.avatarLabel, isCompactPlayScreen && styles.avatarLabelCompact]}>
+          {vsAI ? t(language, 'aiLabel') : t(language, 'player2Label')}
+        </Text>
+      </View>
+    </View>
+  );
 
   const gameStatusBlock = (
     <GameStatus
@@ -320,7 +429,7 @@ const Game: React.FC<GameProps> = ({
   );
 
   const scoreBannerBlock = (
-    <View style={styles.scoreBanner}>
+    <View style={[styles.scoreBanner, careerBadge && styles.scoreBannerWithCareer]}>
       <View style={styles.scoreBannerContent}>
         <View style={[styles.scoreInfoBlock, showMoodTimer && styles.scoreInfoBlockNarrow]}>
           <View style={styles.scoreRow}>
@@ -340,6 +449,18 @@ const Game: React.FC<GameProps> = ({
                 </View>
               ) : null}
             </View>
+            {careerBadge ? (
+              <TouchableOpacity
+                style={styles.careerBadgeInline}
+                onPress={onCareer}
+                disabled={!onCareer}
+                accessibilityRole="button"
+              >
+                <Text style={styles.careerBadgeText} numberOfLines={1}>
+                  {careerBadge}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
 
           <View style={styles.scoreBarOuter}>
@@ -391,7 +512,7 @@ const Game: React.FC<GameProps> = ({
   );
 
   const controlsBlock = (
-    <View style={styles.switchesContainer}>
+    <View style={[styles.switchesContainer, isCompactPlayScreen && styles.switchesContainerCompact]}>
       <View style={styles.controlsWrapper}>
         <TouchableOpacity style={styles.arrowButton} onPress={scrollControlsToStart}>
           <Text style={styles.arrowText}>‹</Text>
@@ -451,7 +572,7 @@ const Game: React.FC<GameProps> = ({
         lastMove={lastMove}
         winningCells={winningCells}
         centerTrigger={boardCenterTrigger}
-        availableWidth={boardColumnWidth}
+        availableWidth={activeBoardWidth}
       />
       <Fireworks
         key={fireworksNonce}
@@ -482,31 +603,86 @@ const Game: React.FC<GameProps> = ({
     </View>
   ) : null;
 
-  if (isTabletLandscape) {
+  const promotionOverlayBlock = (
+    <PromotionOverlay
+      visible={showPromotionOverlay}
+      title={promotionTitle}
+      subtitle={promotionSubtitle}
+      isCeo={promotedRank === 'ceo'}
+      playerAvatarId={playerAvatarId}
+      onComplete={() => {
+        setShowPromotionOverlay(false);
+        setPromotedRank(null);
+      }}
+    />
+  );
+
+  if (isWideLayout) {
     return (
       <View style={[styles.container, styles.containerLandscape]}>
-        <View style={styles.landscapeSidebar}>
-          <ScrollView contentContainerStyle={styles.landscapeSidebarContent} showsVerticalScrollIndicator={false}>
-            {gameStatusBlock}
-            {vsAI && scoreBannerBlock}
-            {controlsBlock}
-          </ScrollView>
+        <View style={[styles.wideSidePanel, styles.wideSidePanelLeft, { width: sidePanelWidth }]}>
+          <GameSideHud
+            role="player"
+            side="left"
+            avatarId={playerAvatarId}
+            label={vsAI ? t(language, 'playerLabel') : 'P1'}
+            stoneBadge="⚫"
+            isActiveTurn={isHumanTurn}
+            statusText={turnStatusText}
+            careerBadge={careerBadge}
+            onCareerPress={onCareer}
+            showScore={vsAI}
+            totalScore={totalScore}
+            isMaster={isMaster}
+            isExpert={isExpert}
+            seg1Fill={seg1Fill}
+            seg2Fill={seg2Fill}
+            showActions
+            onRestart={handleRestart}
+            onUndo={handleUndo}
+            undoCount={undoCount}
+            canUndo={canUndo}
+            onLeaderboard={onLeaderboard}
+            onSettings={onSettings}
+            vsAI={vsAI}
+            onToggleMode={toggleAIMode}
+            language={language}
+          />
         </View>
-        <View style={styles.landscapeBoardColumn}>
+
+        <View style={styles.landscapeCenter}>
           {boardBlock}
         </View>
+
+        <View style={[styles.wideSidePanel, styles.wideSidePanelRight, { width: sidePanelWidth }]}>
+          <GameSideHud
+            role="opponent"
+            side="right"
+            avatarId={aiAvatarId}
+            label={vsAI ? t(language, 'aiLabel') : t(language, 'player2Label')}
+            stoneBadge="⚪"
+            isActiveTurn={isOpponentTurn}
+            statusText={vsAI && aiThinking ? t(language, 'aiThinking') : undefined}
+            aiThinking={vsAI && aiThinking}
+            language={language}
+          />
+        </View>
+
         {expertToastBlock}
+        {promotionOverlayBlock}
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {avatarRowBlock}
       {gameStatusBlock}
       {vsAI && scoreBannerBlock}
       {controlsBlock}
       {boardBlock}
       {expertToastBlock}
+      {promotionOverlayBlock}
     </View>
   );
 };
@@ -525,6 +701,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     paddingBottom: 0,
+    backgroundColor: colors.background,
+  },
+  wideSidePanel: {
+    backgroundColor: colors.surfaceMuted,
+    paddingTop: 4,
+  },
+  wideSidePanelLeft: {
+    borderRightWidth: 1,
+    borderRightColor: colors.borderMuted,
+  },
+  wideSidePanelRight: {
+    borderLeftWidth: 1,
+    borderLeftColor: colors.borderMuted,
+  },
+  landscapeCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
   },
   landscapeSidebar: {
     flex: 38,
@@ -551,6 +746,35 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 10,
   },
+  scoreBannerWithCareer: {
+    paddingVertical: 6,
+  },
+  careerBadgeInline: {
+    flexShrink: 1,
+    maxWidth: '42%',
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: colors.goldTint,
+    borderWidth: 1,
+    borderColor: colors.goldMuted,
+  },
+  careerBadgeRow: {
+    alignSelf: 'center',
+    marginBottom: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: colors.goldTint,
+    borderWidth: 1,
+    borderColor: colors.goldMuted,
+  },
+  careerBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#92650A',
+  },
   scoreBannerContent: {
     flexDirection: 'row',
     alignItems: 'stretch',
@@ -566,7 +790,9 @@ const styles = StyleSheet.create({
   scoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 6,
+    gap: 8,
   },
   scoreMain: {
     flexDirection: 'row',
@@ -653,8 +879,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   boardWrapper: {
+    flex: 1,
     position: 'relative',
     alignSelf: 'stretch',
+    justifyContent: 'center',
+    minHeight: 0,
   },
   aiThinkingOverlay: {
     position: 'absolute',
@@ -682,6 +911,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 10,
+  },
+  switchesContainerCompact: {
+    marginBottom: 6,
+    paddingVertical: 4,
   },
   controlsWrapper: {
     flexDirection: 'row',
@@ -773,6 +1006,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 28,
+    marginTop: 8,
+    marginBottom: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    alignSelf: 'stretch',
+  },
+  avatarRowPlaying: {
+    marginBottom: 2,
+  },
+  avatarSlot: {
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  avatarSlotActive: {
+    backgroundColor: colors.goldTint,
+    borderWidth: 1,
+    borderColor: colors.goldMuted,
+  },
+  avatarLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  avatarLabelCompact: {
+    fontSize: 11,
   },
 });
 

@@ -18,12 +18,17 @@ import {
   UserSettings,
 } from '../services/settings';
 import { SHOW_BG_MUSIC_SETTINGS } from '../constants/app';
+import { AvatarPicker } from '../components/AvatarPicker';
+import { SettingsToggleRow } from '../components/SettingsToggleRow';
+import type { AvatarId } from '../constants/avatars';
+import { createCareerTranslate } from '../utils/careerI18n';
 import { t } from '../utils/i18n';
 
 interface Props {
   initialSettings: UserSettings;
   onBack: () => void;
   onSave: (next: UserSettings) => Promise<void> | void;
+  onOpenCareer?: () => void;
 }
 
 const INTERMEDIATE_OPTIONS = [1, 2, 3, 4, 5];
@@ -48,15 +53,20 @@ const sanitizeExpertTopPool = (value: number): number => {
   return value;
 };
 
-export default function SettingsScreen({ initialSettings, onBack, onSave }: Props) {
+export default function SettingsScreen({ initialSettings, onBack, onSave, onOpenCareer }: Props) {
   const insets = useSafeAreaInsets();
-  const language = initialSettings.language;
+  const [language, setLanguage] = useState(initialSettings.language);
+  const ct = createCareerTranslate(language);
   const [userHandle, setUserHandle] = useState(initialSettings.userHandle);
   const [timerEnabled, setTimerEnabled] = useState(initialSettings.timerEnabled);
   const [intermediateTopPoolSize, setIntermediateTopPoolSize] = useState(initialSettings.intermediateTopPoolSize);
   const [expertTopPool, setExpertTopPool] = useState(initialSettings.expertTopPool);
   const [bgMusicEnabled, setBgMusicEnabled] = useState(initialSettings.bgMusicEnabled);
   const [bgMusicVolume, setBgMusicVolume] = useState(initialSettings.bgMusicVolume);
+  const [playerAvatarId, setPlayerAvatarId] = useState(initialSettings.playerAvatarId);
+  const [aiAvatarId, setAiAvatarId] = useState(initialSettings.aiAvatarId);
+  const [careerModeEnabled, setCareerModeEnabled] = useState(initialSettings.careerModeEnabled);
+  const [avatarsSectionVisible, setAvatarsSectionVisible] = useState(false);
   useEffect(() => {
     setUserHandle(initialSettings.userHandle);
     setTimerEnabled(initialSettings.timerEnabled);
@@ -64,6 +74,10 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
     setExpertTopPool(initialSettings.expertTopPool);
     setBgMusicEnabled(initialSettings.bgMusicEnabled);
     setBgMusicVolume(initialSettings.bgMusicVolume);
+    setPlayerAvatarId(initialSettings.playerAvatarId);
+    setAiAvatarId(initialSettings.aiAvatarId);
+    setCareerModeEnabled(initialSettings.careerModeEnabled);
+    setLanguage(initialSettings.language);
   }, [initialSettings]);
 
   const nicknameChanged = userHandle.trim() !== initialSettings.userHandle;
@@ -77,7 +91,10 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
         expertTopPool: sanitizeExpertTopPool(expertTopPool),
         bgMusicEnabled,
         bgMusicVolume,
-        language: initialSettings.language,
+        language,
+        playerAvatarId,
+        aiAvatarId,
+        careerModeEnabled,
         ...patch,
       };
       await onSave(next);
@@ -121,6 +138,98 @@ export default function SettingsScreen({ initialSettings, onBack, onSave }: Prop
             autoCorrect={false}
           />
           <Text style={styles.hint}>{t(language, 'nicknameHint')}</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>{t(language, 'languageSettingLabel')}</Text>
+          <Text style={styles.hint}>{t(language, 'languageLabel')}</Text>
+          <View style={styles.chipRow}>
+            <TouchableOpacity
+              style={[styles.chip, language === 'ko' && styles.chipActive]}
+              onPress={() => {
+                setLanguage('ko');
+                void autoSave({ language: 'ko' });
+              }}
+            >
+              <Text style={[styles.chipText, language === 'ko' && styles.chipTextActive]}>한국어</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.chip, language === 'en' && styles.chipActive]}
+              onPress={() => {
+                setLanguage('en');
+                void autoSave({ language: 'en' });
+              }}
+            >
+              <Text style={[styles.chipText, language === 'en' && styles.chipTextActive]}>English</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>{t(language, 'avatarsSectionLabel')}</Text>
+          <Text style={styles.hint}>{t(language, 'avatarsSectionToggleHint')}</Text>
+          <View style={styles.chipRow}>
+            <TouchableOpacity
+              style={[styles.chip, avatarsSectionVisible && styles.chipActive]}
+              onPress={() => setAvatarsSectionVisible(true)}
+            >
+              <Text style={[styles.chipText, avatarsSectionVisible && styles.chipTextActive]}>
+                {t(language, 'showSection')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.chip, !avatarsSectionVisible && styles.chipActive]}
+              onPress={() => setAvatarsSectionVisible(false)}
+            >
+              <Text style={[styles.chipText, !avatarsSectionVisible && styles.chipTextActive]}>
+                {t(language, 'hideSection')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {avatarsSectionVisible ? (
+            <View style={styles.avatarSectionBody}>
+              <AvatarPicker
+                label={t(language, 'playerAvatarLabel')}
+                description={t(language, 'playerAvatarHint')}
+                value={playerAvatarId}
+                onChange={(id: AvatarId) => {
+                  setPlayerAvatarId(id);
+                  void autoSave({ playerAvatarId: id });
+                }}
+              />
+              <View style={styles.avatarPickerSpacer} />
+              <AvatarPicker
+                label={t(language, 'aiAvatarLabel')}
+                description={t(language, 'aiAvatarHint')}
+                value={aiAvatarId}
+                onChange={(id: AvatarId) => {
+                  setAiAvatarId(id);
+                  void autoSave({ aiAvatarId: id });
+                }}
+              />
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>{ct('screen.title')}</Text>
+          <SettingsToggleRow
+            label={ct('modeLabel')}
+            description={ct('modeDesc')}
+            value={careerModeEnabled}
+            onValueChange={(value) => {
+              setCareerModeEnabled(value);
+              void autoSave({ careerModeEnabled: value });
+            }}
+          />
+          {careerModeEnabled ? (
+            <Text style={styles.hint}>{ct('rulesSnippet')}</Text>
+          ) : null}
+          {careerModeEnabled && onOpenCareer ? (
+            <TouchableOpacity style={styles.careerLinkButton} onPress={onOpenCareer}>
+              <Text style={styles.careerLinkText}>{ct('screen.title')}</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         {SHOW_BG_MUSIC_SETTINGS && (
@@ -276,6 +385,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#334155',
     marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#212529',
+    marginBottom: 12,
+  },
+  avatarPickerSpacer: {
+    height: 16,
+  },
+  avatarSectionBody: {
+    marginTop: 12,
+  },
+  careerLinkButton: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#D4A853',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  careerLinkText: {
+    color: '#92650A',
+    fontSize: 14,
+    fontWeight: '700',
   },
   hint: {
     fontSize: 12,
