@@ -3,11 +3,11 @@ description: Gomoku game improvement backlog — UI, AI, gameplay, and infra
 alwaysApply: false
 ---
 
-# Gomoku Improvement Plan (v2.1.2 audit)
+# Gomoku Improvement Plan
 
-Last reviewed: 2026-07-10.
+Last reviewed: 2026-09-07.
 
-**Notation:** `P0` = **Phase 0**, `P1` = **Phase 1**, … `P4` = **Phase 4**.
+**Notation:** `P0` = **Phase 0**, `P1` = **Phase 1**, … `P5` = **Phase 5**.
 
 ## Progress summary
 
@@ -18,7 +18,18 @@ Last reviewed: 2026-07-10.
 | Phase 2 (P2) | 5 | 5 |
 | Phase 3 (P3) | 4 | 4 |
 | Phase 4 (P4) | — | *cancelled* |
-| **All** | **21** (+1 partial) | **22** *(P4 skipped)* |
+| Phase 5 (P5) | 10 | 16 |
+| **All** | **31** (+1 partial) | **38** *(P4 skipped)* |
+
+### Design decisions (P5 · locked 2026-09-07)
+
+| 항목 | 결정 |
+|------|------|
+| Career | **옵션 A** — 점수 런(0→100) + Career 승진 이중 트랙 |
+| Theme | **밝은 톤** (`colors.ts`) |
+| Avatars | 14종 — 범용 10 + 오목 전용 4 (`baduk-kid`, `stone-sage`, `panda-gomoku`, `focus-girl`) |
+
+> APK·태블릿 QA(갤럭시 탭 우선): `.cursor/rules/gomoku-ios-ipa-build-plan.mdc` UI-0…3 참조.
 
 ### Extra (not numbered in original audit)
 
@@ -80,9 +91,43 @@ Last reviewed: 2026-07-10.
 
 ---
 
+## Phase 5 (P5) — UI Redesign
+
+*설계 확정 · 코드 미착수. 체크리스트 `#UI-n` = build plan과 동일.*
+
+### P5-0 — Foundation
+
+- [x] **#27 / UI-1** `src/constants/colors.ts` — bright theme tokens
+- [x] **#28 / UI-2** `assets/avatars/` — 14 PNG; `src/constants/avatars.ts`
+- [x] **#29 / UI-3** `PlayerAvatar.tsx` · `AvatarPicker.tsx`
+- [x] **#30 / UI-4** `UserSettings` — `playerAvatarId`, `aiAvatarId`, `careerModeEnabled`
+
+### P5-1 — Career · Avatars
+
+- [x] **#31 / UI-5** `src/career/*` — rules, storage, provider
+- [x] **#32 / UI-6** `PromotionOverlay.tsx` — bright gold banner; Career promotion
+- [x] **#33 / UI-7** Career status screen
+- [x] **#34 / UI-8** `SettingsScreen` — Career toggle, i18n
+
+### P5-2 — Tablet landscape
+
+- [x] **#35 / UI-9** `useScreenLayout.ts`
+- [x] **#36 / UI-10** `PhoneLandscapeWarning.tsx` in `App.tsx`
+- [x] **#37 / UI-11** `GameSideHud.tsx` (gomoku)
+- [x] **#38 / UI-12** `LandscapeSideArt.tsx` — light wood + stone SVG
+- [x] **#39 / UI-13** `Game.tsx` — 3-column wide layout
+
+### P5-3 — Polish · QA
+
+- [x] **#40 / UI-14** Home — `HomePlayerPreview.tsx` · Career badge, avatar preview
+- [ ] **#41 / UI-15** **Galaxy Tab** + iPhone portrait regression (iPad optional)
+- [ ] **#42 / UI-16** Play Store Galaxy Tab landscape screenshots
+
+---
+
 ## Suggested next up
 
-*No open items in the audit backlog. P4 intentionally deferred/cancelled.*
+**P5 UI-15~16** Galaxy Tab QA + Play Store screenshots — next up. (`app.json` orientation + AndroidManifest 회전 잠금 해제 ✓)
 
 ## Files to touch (reference)
 
@@ -96,3 +141,4 @@ Last reviewed: 2026-07-10.
 - `src/utils/i18n.ts` — P3-20 ✓
 - `src/components/VictoryPopup.tsx` — P3-19/22 ✓
 - `README.md` — P1-13 ✓
+- **P5 (planned):** `src/constants/colors.ts`, `src/constants/avatars.ts`, `assets/avatars/`, `src/career/`, `src/components/PlayerAvatar.tsx`, `PromotionOverlay.tsx`, `GameSideHud.tsx`, `LandscapeSideArt.tsx`, `src/hooks/useScreenLayout.ts`, `PhoneLandscapeWarning.tsx`, `App.tsx`, `Game.tsx`, `SettingsScreen.tsx`

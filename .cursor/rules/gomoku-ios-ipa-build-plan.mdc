@@ -5,13 +5,15 @@ alwaysApply: false
 
 # Gomoku iOS IPA Build Plan
 
-Last reviewed: 2026-07-14.
+Last reviewed: 2026-09-07.
 
-**프로젝트:** Expo SDK 53 + React Native 0.79.6 (`gomoku-game`)  
+**프로젝트:** Expo SDK 57 + React Native 0.86.3 (`gomoku-game`) · `expo-audio`  
 **빌드 방식:** **Xcode 로컬 빌드** (EAS Apple ID 로그인 스킵)  
-**현재 상태:** `ios/` **생성됨** · CocoaPods 설치됨 · Xcode 26.6 · Keychain 서명 인증서 **없음** (Xcode에서 Team 설정 필요)
+**현재 상태:** `ios/` **생성됨** · CocoaPods 설치됨 · Xcode 26.6 · Keychain 서명 인증서 **없음** (Xcode에서 Team 설정 필요)  
+**UI 개편:** **UI-0~2 완료** · **UI-14(홈) 완료** — Career·아바타 미리보기 · QA(UI-15~16) 잔여
 
-**Notation:** `P0` = **Phase 0**, `P1` = **Phase 1**, … `P5` = **Phase 5**.
+**Notation:** `P0` = **Phase 0**, `P1` = **Phase 1**, … `P5` = **Phase 5**.  
+**UI:** `UI-0` … `UI-3` = UI 개편 단계 (IPA 전 권장).
 
 ---
 
@@ -25,7 +27,9 @@ Last reviewed: 2026-07-14.
 | Phase 3 (P3) | 0 | 3 | Archive → IPA export |
 | Phase 4 (P4) | 0 | 2 | 배포 · 설치 |
 | Phase 5 (P5) | — | — | 트러블슈팅 참고 |
-| **All** | **7** | **15** |
+| **UI (UI-0…3)** | 14 | 16 | UI-0~2·14 완료 · QA 잔여 |
+| **All (빌드만)** | **7** | **15** |
+| **All (빌드+UI)** | **17** | **31** |
 
 ---
 
@@ -83,8 +87,9 @@ Xcode Settings → Accounts에 **무료 Apple ID**만 추가하면 됩니다.
 
 | 항목 | 값 |
 |------|-----|
-| 앱 버전 | `2.1.2` |
 | iOS Bundle ID | `com.mike008.gomokugame` |
+| 앱 버전 | `3.0.0` |
+| Android versionCode | `3` |
 | iOS buildNumber | `1` |
 | Xcode workspace | `ios/Gomoku.xcworkspace` |
 | Xcode scheme | `Gomoku` |
@@ -176,7 +181,7 @@ Organizer에서 방금 Archive 선택 → **Distribute App**:
 권장 저장 경로:
 
 ```
-/Users/mikelim/Github/gomoku-game/Gomoku-2.1.2-ios.ipa
+/Users/mikelim/Github/gomoku-game/Gomoku-3.0.0-ios.ipa
 ```
 
 ---
@@ -199,6 +204,108 @@ Organizer에서 방금 Archive 선택 → **Distribute App**:
 | prebuild 후 네이티브 변경 필요 | `app.json` 수정 → `npx expo prebuild --platform ios` 재실행 |
 | New Architecture 빌드 오류 | `app.json` `newArchEnabled: false` 후 prebuild 재실행 |
 | Ad Hoc 설치 실패 | 기기 UDID가 프로비저닝 프로파일에 포함됐는지 확인 |
+| SDK 업그레이드 후 네이티브 빌드 실패 | `npx expo prebuild --clean` 후 `npx expo run:android` / `run:ios` 재빌드 |
+| 갤럭시 탭 가로 회전 안 됨 | `app.json` `orientation: "default"` · AndroidManifest `screenOrientation` 제거 · **SDK 57 네이티브 재빌드** |
+| 태블릿 가로 UI 깨짐 | UI-2 완료 후 **갤럭시 탭** 실기·에뮬에서 가로 QA (아래 UI-3 체크리스트) |
+| 아바타 PNG 누락 | `assets/avatars/` 추가 후 `npx expo prebuild` 재실행 |
+
+---
+
+## UI 개편 로드맵 ← **설계 확정**
+
+> **상세 백로그:** `.cursor/rules/gomoku-improvement-plan.mdc` Phase 5 (P5)  
+> **현재 gomoku 상태:** 점수 0→100 마스터 런 · Expert 80 전환 · 2-segment progress bar · 태블릿 가로는 **3-column HUD**  
+> **태블릿 QA 기준:** **갤럭시 탭(Android) 우선** · iPad는 부가 회귀
+
+### 설계 결정 (확정 · 2026-09-07)
+
+| 항목 | 결정 |
+|------|------|
+| **Career** | **옵션 A — 이중 트랙** (점수 런 유지 + Career 승진 병행) |
+| **테마** | **밝은 톤** (`#F3EFE7` 배경 · `#457B9D` accent · `#D4A853` gold) |
+| **아바타** | 범용 10종 + **오목 전용 4종** (아래 목록) |
+
+**옵션 A 상세**
+
+- **점수 런(0→100):** `useScoreProgression` 그대로 — AI 난이도·리더보드·Master 축하
+- **Career:** 직급 ladder (인턴→CEO) — AI 승리 누적, 패배해도 진행 유지, 차장+ Expert pool 조건
+- **UI:** 사이드 HUD `careerBadge` + 설정 `careerModeEnabled` 토글
+- **연출 큐:** 일반 승리 popup → Career 승진 / Master(100) → `PromotionOverlay` (밝은 톤 변형)
+
+**밝은 톤 가이드**
+
+- `PromotionOverlay`·`PhoneLandscapeWarning` — 밝은 gomoku 팔레트 (`colors.ts`)
+- 승진 accent gold: `#D4A853` (리더보드 버튼 border와 통일)
+- `LandscapeSideArt`: 나무 보드 `#C4A574` 톤 + 흑백 돌 SVG (다크 wood gradient 사용 안 함)
+
+**아바타 에셋 계획** (`assets/avatars/`)
+
+| 출처 | ID | 비고 |
+|------|-----|------|
+| 범용 (10종) | `female-1` … `businessman` | `assets/avatars/` |
+| **오목 전용 (4종)** | `baduk-kid` | 어린이 바둑 플레이어 |
+| | `stone-sage` | 돌 두는 할아버지 / 고수 느낌 |
+| | `panda-gomoku` | 귀여운 판다 + 돌 (AI 기본) |
+| | `focus-girl` | 집중하는 여성 플레이어 |
+| **기본값** | player → `female-1` · AI → `panda-gomoku` |
+
+> 오목 전용 PNG 중 placeholder는 추후 교체 가능. 범용 10종만으로도 MVP 동작.
+
+### UI 구현 요약
+
+| 영역 | gomoku-game |
+|------|-------------|
+| `src/constants/avatars.ts` + `assets/avatars/` | 14종 아바타 |
+| `PlayerAvatar` · `AvatarPicker` | 설정 + 게임 HUD |
+| `career/*` (직급 승진) | **옵션 A** — 점수 런과 **병행**, 설정 on/off |
+| `PromotionOverlay` | Career 승진 + Master(100); **밝은 배너** |
+| `useScreenLayout` · `isTabletWideLayout` | 태블릿 wide layout 분기 |
+| `PhoneLandscapeWarning` | 폰 가로 → 세로 · 태블릿 세로 → 가로 |
+| `GameSideHud` + `LandscapeSideArt` | **3-column** 양쪽 HUD + 밝은 나무 side art |
+| `constants/colors.ts` | 밝은 디자인 토큰 |
+
+### Phase UI-0 — 공통 기반
+
+- [x] **#UI-1** `src/constants/colors.ts` — **밝은 톤** 디자인 토큰 (`background`, `accent`, `gold`, `textPrimary` …)
+- [x] **#UI-2** `src/constants/avatars.ts` + `assets/avatars/` — 14종 PNG (범용 10 + 오목 전용 4)
+- [x] **#UI-3** `PlayerAvatar.tsx` · `AvatarPicker.tsx`
+- [x] **#UI-4** `UserSettings` — `playerAvatarId` · `aiAvatarId` · `careerModeEnabled` *(토글 UI는 UI-8)*
+
+### Phase UI-1 — 승진 · 아바타 UX
+
+- [x] **#UI-5** `src/career/*` — rules · storage · provider · AI tier mapping
+- [x] **#UI-6** `PromotionOverlay.tsx` — 승진 연출 (밝은 골드 배너)
+- [x] **#UI-7** `CareerScreen.tsx` — 직급 사다리 · 현황
+- [x] **#UI-8** `SettingsScreen` — Career 토글 · 승진 현황 링크 · i18n (`careerI18n.ts`)
+
+### Phase UI-2 — 태블릿 가로 레이아웃
+
+- [x] **#UI-9** `useScreenLayout.ts` — `isTabletWideLayout` · `sidePanelWidth` · orientation guide
+- [x] **#UI-10** `PhoneLandscapeWarning.tsx` — `App.tsx` 루트에 마운트
+- [x] **#UI-11** `GameSideHud.tsx` (gomoku용) — 아바타 · 턴 · 점수/Career · Undo/Restart/New
+- [x] **#UI-12** `LandscapeSideArt.tsx` (gomoku용) — 흑/백 돌 SVG 장식 (`react-native-svg`)
+- [x] **#UI-13** `Game.tsx` wide layout — 3-column `[player HUD | board | opponent HUD]`
+
+### Phase UI-3 — 홈 · QA (IPA 전)
+
+- [x] **#UI-14** 홈 화면 — `HomePlayerPreview.tsx` · Career badge · 아바타 미리보기
+- [ ] **#UI-15** **갤럭시 탭** 가로/세로 · iPhone 세로 회귀 · iPad 부가 확인
+- [ ] **#UI-16** Play Store용 **갤럭시 탭 가로** 스크린샷 · (선택) iPad/TestFlight 캡처
+
+#### 태블릿 QA 체크리스트 — **갤럭시 탭 우선** (Archive/APK 전)
+
+**권장 기기:** Tab S9 / Tab A · 에뮬: Pixel Tablet 또는 10" API 34+ landscape
+
+| 항목 | iPhone 세로 | iPhone 가로 | 갤럭시 탭 세로 | 갤럭시 탭 가로 |
+|------|-------------|-------------|----------------|----------------|
+| Orientation 안내 | — | 세로 유도 오버레이 | 가로 유도 (dismiss 가능) | — |
+| 네이티브 회전 | portrait lock | portrait lock | unlock | unlock |
+| 보드 크기 (23×23) | 15×15 | N/A | OK | 중앙 최대화 |
+| 3-column HUD | — | — | (넓은 세로만) | 플레이어·보드·AI |
+| 승진 오버레이 | OK | — | OK | OK |
+| 설정·리더보드 | OK | — | OK | OK |
+
+**Android 재빌드 필수:** `orientation` / `AndroidManifest` 변경 후 `npx expo run:android` (또는 release APK).
 
 ---
 
@@ -207,10 +314,14 @@ Organizer에서 방금 Archive 선택 → **Distribute App**:
 ```
 1. ✅ P0  Xcode · CocoaPods 준비
 2. ✅ P1  expo prebuild → ios/Gomoku.xcworkspace 생성
-3. ▶  P2  Xcode Accounts + Signing & Capabilities   ← 지금 여기
-4.     P3  Product → Archive → Distribute App → .ipa
-5.     P4  TestFlight 또는 Ad Hoc 설치
+3. ▶  P2  Xcode Accounts + Signing & Capabilities   ← 빌드: 지금 여기
+4.     UI-0…2  UI 개편 (아바타 → Career → 태블릿 가로)   ← UI: 병행 권장
+5.     UI-3  갤럭시 탭 QA (+ iPhone 세로)
+6.     P3  Product → Archive → Distribute App → .ipa
+7.     P4  TestFlight 또는 Ad Hoc 설치
 ```
+
+> **Tip:** UI-2(태블릿 가로)까지 완료한 뒤 **갤럭시 탭 실기 QA** → Play Store 스크린샷. iPad IPA는 부가(Ad Hoc/TestFlight).
 
 ---
 
@@ -223,6 +334,17 @@ Organizer에서 방금 Archive 선택 → **Distribute App**:
 | `ios/Gomoku.xcodeproj` | Xcode 프로젝트 |
 | `ios/Podfile` | CocoaPods 의존성 |
 | `docs/github-release-guide.md` | GitHub Release에 IPA 첨부 가이드 |
+| **UI (계획)** | |
+| `App.tsx` | Orientation lock · `PhoneLandscapeWarning` 마운트 |
+| `src/components/Game.tsx` | wide layout 분기 · HUD 통합 |
+| `src/hooks/useScreenLayout.ts` | 태블릿 wide / orientation guide *(신규)* |
+| `src/career/*` | 승진 규칙·저장 |
+| `src/constants/avatars.ts` | 아바타 ID · 이미지 map |
+| `assets/avatars/` | 14종 PNG |
+| `src/components/PlayerAvatar.tsx` | 아바타 UI |
+| `src/components/PromotionOverlay.tsx` | 승진 연출 |
+| `src/components/GameSideHud.tsx` | 태블릿 사이드 HUD |
+| `src/hooks/useScreenLayout.ts` | 태블릿 wide / orientation |
 
 ---
 

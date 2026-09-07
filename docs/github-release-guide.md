@@ -3,7 +3,7 @@
 이 문서는 **gomoku-game** (Expo + React Native) 프로젝트에서 빌드한 Android·iOS 설치 파일을 [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases)에 올리는 전체 과정을 정리합니다.
 
 - **저장소:** `michaeldslim/gomoku-game`
-- **앱 버전:** `app.json` → `expo.version` (현재 `2.1.2`)
+- **앱 버전:** `app.json` → `expo.version` (현재 `3.0.0`)
 - **Android 패키지:** `com.mike008.gomokugame`
 - **iOS 번들 ID:** `com.mike008.gomokugame`
 - **EAS 프로젝트 ID:** `174f040a-54d5-40cd-927a-c7a304b8d90a`
@@ -30,14 +30,14 @@ GitHub Release는 **Git 태그**에 연결된 공개 다운로드 페이지입�
 
 | 항목 | 설명 |
 |------|------|
-| **태그** | `v2.1.2` 같은 버전 식별자 (보통 `v` + 시맨틱 버전) |
+| **태그** | `v3.0.0` 같은 버전 식별자 (보통 `v` + 시맨틱 버전) |
 | **Release 노트** | 변경 사항, 설치 방법, 알려진 이슈 |
 | **Assets (첨부 파일)** | APK, AAB, IPA 등 설치 파일 |
 
 Release URL 예시:
 
 ```
-https://github.com/michaeldslim/gomoku-game/releases/tag/v2.1.2
+https://github.com/michaeldslim/gomoku-game/releases/tag/v3.0.0
 ```
 
 ---
@@ -76,20 +76,20 @@ https://github.com/michaeldslim/gomoku-game/releases/tag/v2.1.2
 네이티브 변경이 있을 때:
 
 ```bash
-npm run bump:runtime -- 2.2.0
+npm run bump:runtime -- 3.0.0
 ```
 
 `app.json`의 `runtimeVersion`과 Android `strings.xml`이 함께 갱신됩니다.
 
-### 3.2 수동으로 맞출 때 (예: 2.2.0)
+### 3.2 수동으로 맞출 때 (예: 3.0.0)
 
-1. `app.json` → `"version": "2.2.0"`, `"runtimeVersion": "2.2.0"`
-2. `package.json` → `"version": "2.2.0"`
-3. `android/app/build.gradle` → `versionName "2.2.0"`, `versionCode` 증가 (예: `2` → `3`)
+1. `app.json` → `"version": "3.0.0"`, `"runtimeVersion": "3.0.0"`
+2. `package.json` → `"version": "3.0.0"`
+3. `android/app/build.gradle` → `versionName "3.0.0"`, `versionCode` 증가 (예: `2` → `3`)
 
 ### 3.3 Git 태그 생성
 
-태그는 Release와 1:1로 연결합니다. **`v` + 시맨틱 버전** 형식을 권장합니다 (예: `v2.2.0`).
+태그는 Release와 1:1로 연결합니다. **`v` + 시맨틱 버전** 형식을 권장합니다 (예: `v3.0.0`).
 
 #### 방법 A — GitHub Release 페이지에서 생성 (권장, CLI 불필요)
 
@@ -101,8 +101,8 @@ Release를 Publish할 때 태그가 자동으로 생성·푸시됩니다.
 
 Release 페이지의 **Choose a tag** 드롭다운에서:
 
-1. `Find or create a new tag` 입력란에 `v2.2.0` 입력
-2. 목록에 없으면 **`Create new tag: v2.2.0 on publish`** 가 표시됨
+1. `Find or create a new tag` 입력란에 `v3.0.0` 입력
+2. 목록에 없으면 **`Create new tag: v3.0.0 on publish`** 가 표시됨
 3. **Target**을 `main`(또는 릴리스할 브랜치)으로 선택 — 태그가 이 커밋에 붙음
 4. 아래 [6.1 GitHub 웹 UI — 순서대로 입력하기](#61-방법-a--github-웹-ui-순서대로)에서 Release를 완료하면 태그도 함께 생성됨
 
@@ -110,13 +110,13 @@ Release 페이지의 **Choose a tag** 드롭다운에서:
 
 ```bash
 git add app.json package.json android/app/build.gradle
-git commit -m "chore: bump version to 2.2.0"
+git commit -m "chore: bump version to 3.0.0"
 git push origin main
-git tag v2.2.0
-git push origin v2.2.0
+git tag v3.0.0
+git push origin v3.0.0
 ```
 
-이미 태그를 push했다면 Release 페이지에서 **Choose a tag**에 `v2.2.0`을 **선택**만 하면 됩니다 (새로 만들 필요 없음).
+이미 태그를 push했다면 Release 페이지에서 **Choose a tag**에 `v3.0.0`을 **선택**만 하면 됩니다 (새로 만들 필요 없음).
 
 ---
 
@@ -304,21 +304,21 @@ GitHub 웹 UI만 사용할 때, [releases/new](https://github.com/michaeldslim/g
 | 순서 | 할 일 | 결과물 |
 |------|--------|--------|
 | 1 | [배포 전 체크리스트](#2-배포-전-체크리스트) 확인 | 테스트 플래그 off, 서명 키 등 |
-| 2 | [버전 번호 맞추기](#3-버전-번호-맞추기) (`app.json`, `package.json`, `build.gradle`) | 예: `2.1.2` |
+| 2 | [버전 번호 맞추기](#3-버전-번호-맞추기) (`app.json`, `package.json`, `build.gradle`) | 예: `3.0.0` |
 | 3 | 변경 사항을 `main`에 **commit & push** | GitHub에 최신 코드 반영 |
 | 4 | [Android APK 빌드](#4-android-빌드-apk--aab) (필수) | `Gomoku-app-release.apk` |
 | 5 | AAB / iOS IPA 빌드 (선택) | `.aab`, `.ipa` |
-| 6 | 업로드용 파일명 정리 (권장) | `Gomoku-2.1.2-android.apk` 등 |
+| 6 | 업로드용 파일명 정리 (권장) | `Gomoku-3.0.0-android.apk` 등 |
 | 7 | Release 노트 초안 작성 | 변경 사항, 설치 방법 |
 
 **Release 페이지에 가져갈 파일 (최소):**
 
-- `Gomoku-2.1.2-android.apk` — Android 직접 설치용 (**필수**)
+- `Gomoku-3.0.0-android.apk` — Android 직접 설치용 (**필수**)
 
 **선택 첨부:**
 
-- `Gomoku-2.1.2-android.aab` — Play Store용 보관
-- `Gomoku-2.1.2-ios.ipa` — Ad Hoc 테스터용
+- `Gomoku-3.0.0-android.aab` — Play Store용 보관
+- `Gomoku-3.0.0-ios.ipa` — Ad Hoc 테스터용
 
 ---
 
@@ -332,10 +332,10 @@ GitHub에 로그인한 뒤, 아래 항목을 **위에서 아래로** 채웁니�
 
 | 입력 | 예시 | 설명 |
 |------|------|------|
-| 태그 이름 | `v2.1.2` | `v` + `app.json`의 `expo.version` 권장 |
+| 태그 이름 | `v3.0.0` | `v` + `app.json`의 `expo.version` 권장 |
 
-- **처음 릴리스:** 태그 이름 입력 → **`Create new tag: v2.1.2 on publish`** 선택
-- **이미 태그가 있음:** 드롭다운에서 기존 `v2.1.2` 선택
+- **처음 릴리스:** 태그 이름 입력 → **`Create new tag: v3.0.0 on publish`** 선택
+- **이미 태그가 있음:** 드롭다운에서 기존 `v3.0.0` 선택
 
 > 이 단계에서 **Git 태그를 따로 만들 필요 없음**. Publish 시 GitHub가 태그를 생성합니다.
 
@@ -352,7 +352,7 @@ GitHub에 로그인한 뒤, 아래 항목을 **위에서 아래로** 채웁니�
 
 | 입력 | 예시 |
 |------|------|
-| 제목 | `Gomoku v2.1.2` |
+| 제목 | `Gomoku v3.0.0` |
 
 사용자에게 보이는 릴리스 이름입니다. 태그와 같을 필요는 없지만 맞추면 찾기 쉽습니다.
 
@@ -395,7 +395,7 @@ GitHub는 **Pre-release가 아닌** 공개 Release 중에서 **시맨틱 버전�
 | 첫 번째 안정 Release Publish | 자동으로 **Latest** |
 | Pre-release **체크 안 함** + 태그가 가장 높은 버전 | 자동으로 **Latest** |
 | Pre-release **체크함** | Latest **불가** (의도된 동작) |
-| 예전 버전(`v2.0.0`)을 나중에 Publish | `v2.1.2`이 더 높으면 Latest는 `v2.1.2` 유지 |
+| 예전 버전(`v2.1.2`)을 나중에 Publish | `v3.0.0`이 더 높으면 Latest는 `v3.0.0` 유지 |
 
 **즉, Latest를 수동으로 고를 필요가 없습니다.** 안정 버전을 올릴 때는 **Pre-release만 체크 해제**하면 됩니다.
 
@@ -405,10 +405,10 @@ GitHub는 **Pre-release가 아닌** 공개 Release 중에서 **시맨틱 버전�
 
 ```bash
 # 이 Release를 Latest로 지정
-gh release edit v2.1.2 --latest
+gh release edit v3.0.0 --latest
 
 # Latest에서 제외
-gh release edit v2.1.2 --latest=false
+gh release edit v3.0.0 --latest=false
 ```
 
 또는 해당 Release **편집(Edit)** 화면을 열어 **Set as latest release** 옵션이 있는지 확인하세요. (저장소·UI 버전에 따라 **편집 시에만** 나타나기도 합니다.)
@@ -424,8 +424,8 @@ gh release edit v2.1.2 --latest=false
 
 **Publish 후 확인:**
 
-- Release URL: `https://github.com/michaeldslim/gomoku-game/releases/tag/v2.1.2`
-- **Code → Tags**에서 `v2.1.2` 태그 생성 여부 확인
+- Release URL: `https://github.com/michaeldslim/gomoku-game/releases/tag/v3.0.0`
+- **Code → Tags**에서 `v3.0.0` 태그 생성 여부 확인
 
 ---
 
@@ -434,11 +434,11 @@ gh release edit v2.1.2 --latest=false
 Release 페이지에서 채울 때 이 순서대로 확인하세요.
 
 ```
-[ ] 1. Choose a tag     → v2.1.2  (Create new tag on publish)
+[ ] 1. Choose a tag     → v3.0.0  (Create new tag on publish)
 [ ] 2. Target           → main
-[ ] 3. Release title    → Gomoku v2.1.2
+[ ] 3. Release title    → Gomoku v3.0.0
 [ ] 4. Description      → 변경 사항 + Android 설치 방법
-[ ] 5. Attach binaries  → Gomoku-2.1.2-android.apk (+ 선택 AAB/IPA)
+[ ] 5. Attach binaries  → Gomoku-3.0.0-android.apk (+ 선택 AAB/IPA)
 [ ] 6. Pre-release      → 안정 버전이면 **체크 안 함** (Latest는 자동 부여)
 [ ] 7. Publish release  → 클릭
 [ ] 8. (확인) Releases 목록에 **Latest** 배지 붙었는지 확인
@@ -453,25 +453,25 @@ Release 페이지에서 채울 때 이 순서대로 확인하세요.
 gh auth login
 
 # 릴리스 생성 + 파일 첨부 (draft)
-gh release create v2.1.2 \
+gh release create v3.0.0 \
   --repo michaeldslim/gomoku-game \
-  --title "Gomoku v2.1.2" \
+  --title "Gomoku v3.0.0" \
   --notes-file RELEASE_NOTES.md \
   --draft \
   android/app/build/outputs/apk/release/Gomoku-app-release.apk
 
 # 검토 후 공개
-gh release edit v2.1.2 --draft=false
+gh release edit v3.0.0 --draft=false
 
 # 기존 릴리스에 파일 추가
-gh release upload v2.1.2 ./Gomoku-app-release.aab ./Gomoku.ipa
+gh release upload v3.0.0 ./Gomoku-app-release.aab ./Gomoku.ipa
 ```
 
 **한 줄로 notes 지정:**
 
 ```bash
-gh release create v2.1.2 \
-  --title "Gomoku v2.1.2" \
+gh release create v3.0.0 \
+  --title "Gomoku v3.0.0" \
   --notes "## 변경 사항
 - AI 난이도 조정
 - 버그 수정
@@ -484,7 +484,7 @@ APK 다운로드 후 설치 (출처 알 수 없는 앱 허용 필요)" \
 ### 6.3 Release 노트 템플릿
 
 ```markdown
-## Gomoku v2.1.2
+## Gomoku v3.0.0
 
 ### 변경 사항
 - (여기에 변경 내용)
@@ -493,8 +493,8 @@ APK 다운로드 후 설치 (출처 알 수 없는 앱 허용 필요)" \
 
 | 플랫폼 | 파일 | 설치 방법 |
 |--------|------|-----------|
-| Android | `Gomoku-2.1.2-android.apk` | APK 다운로드 → 설치 (알 수 없는 출처 허용) |
-| Android (Play) | `Gomoku-2.1.2.aab` | 개발자용 / Play Console 업로드 |
+| Android | `Gomoku-3.0.0-android.apk` | APK 다운로드 → 설치 (알 수 없는 출처 허용) |
+| Android (Play) | `Gomoku-3.0.0.aab` | 개발자용 / Play Console 업로드 |
 | iOS | TestFlight 링크 또는 IPA | Ad Hoc 기기만 IPA 직접 설치 가능 |
 
 ### 요구 사항
@@ -508,9 +508,9 @@ SHA256 (APK): `shasum -a 256 Gomoku-app-release.apk`
 ### 6.4 권장 파일 이름
 
 ```
-Gomoku-2.1.2-android.apk
-Gomoku-2.1.2-android.aab
-Gomoku-2.1.2-ios.ipa
+Gomoku-3.0.0-android.apk
+Gomoku-3.0.0-android.aab
+Gomoku-3.0.0-ios.ipa
 ```
 
 버전·플랫폼이 파일명에 들어가면 사용자가 구분하기 쉽습니다.
@@ -629,7 +629,7 @@ eas credentials
 
 ### Release에 파일이 안 보임
 
-- Draft release인지 확인 (`gh release view v2.1.2`)
+- Draft release인지 확인 (`gh release view v3.0.0`)
 - `gh release upload`로 재업로드
 
 ---
@@ -667,4 +667,4 @@ eas credentials
 
 ---
 
-*마지막 업데이트: 2026-07-12 · gomoku-game v2.1.2 기준*
+*마지막 업데이트: 2026-09-07 · gomoku-game v3.0.0 기준*
