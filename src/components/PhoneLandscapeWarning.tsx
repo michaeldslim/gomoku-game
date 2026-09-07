@@ -46,7 +46,7 @@ export function PhoneLandscapeWarning({ language }: PhoneLandscapeWarningProps) 
   const icon = guide === 'portrait' ? '📱' : '↔️';
 
   return (
-    <View style={styles.overlay} accessibilityRole="alert">
+    <View style={styles.overlay} accessibilityRole="alert" pointerEvents="auto">
       <View style={styles.card}>
         <Text style={styles.icon}>{icon}</Text>
         <Text style={styles.title}>{title}</Text>

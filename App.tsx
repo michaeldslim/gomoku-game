@@ -1,6 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import * as Device from 'expo-device';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import {
   ActivityIndicator,
@@ -68,16 +67,9 @@ function HomePlayerPreviewWithCareer({
 }
 
 function AppContent() {
-  // Phones → portrait lock. Tablets (Galaxy Tab primary QA) → unlock for landscape HUD.
+  // Unlock rotation; PhoneLandscapeWarning blocks phone-landscape and tablet-portrait.
   useEffect(() => {
-    (async () => {
-      const deviceType = await Device.getDeviceTypeAsync();
-      if (deviceType === Device.DeviceType.TABLET) {
-        await ScreenOrientation.unlockAsync();
-      } else {
-        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-      }
-    })();
+    void ScreenOrientation.unlockAsync();
   }, []);
 
   const [screen, setScreen] = useState<Screen>('home');
