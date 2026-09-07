@@ -5,6 +5,8 @@ import { colors } from '../constants/colors';
 interface LandscapeSideArtProps {
   side: 'left' | 'right';
   pieceOnly?: boolean;
+  /** Stretch board art to fill a landscape side panel (home screen) */
+  fillPanel?: boolean;
 }
 
 const STONE_RADIUS = 44;
@@ -26,7 +28,7 @@ function StoneSvg({ fill, stroke, cx }: { fill: string; stroke: string; cx: numb
   );
 }
 
-export function LandscapeSideArt({ side, pieceOnly = false }: LandscapeSideArtProps) {
+export function LandscapeSideArt({ side, pieceOnly = false, fillPanel = false }: LandscapeSideArtProps) {
   const isBlack = side === 'left';
   const stoneFill = isBlack ? '#1F2937' : '#F9FAFB';
   const stoneStroke = isBlack ? '#111827' : '#D1D5DB';
@@ -57,7 +59,7 @@ export function LandscapeSideArt({ side, pieceOnly = false }: LandscapeSideArtPr
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, fillPanel && styles.containerFillPanel]}>
       <Svg width="100%" height="100%" viewBox="0 0 200 600" preserveAspectRatio="xMidYMid slice">
         <Defs>
           <LinearGradient id={`woodGrad-${uid}`} x1="0" y1="0" x2="0" y2="1">
@@ -128,9 +130,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 10,
   },
+  containerFillPanel: {
+    maxHeight: undefined,
+    marginBottom: 0,
+    borderRadius: 0,
+    alignSelf: 'stretch',
+  },
   pieceOnlyWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
   },
 });

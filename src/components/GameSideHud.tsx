@@ -1,11 +1,13 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AvatarId } from '../constants/avatars';
+import { APP_VERSION } from '../constants/app';
 import { colors } from '../constants/colors';
 import { MASTER_SCORE_THRESHOLD } from '../constants/scoring';
 import { EXPERT_THRESHOLD } from '../constants/game';
 import type { Language } from '../utils/i18n';
 import { t } from '../utils/i18n';
 import { LandscapeSideArt } from './LandscapeSideArt';
+import { MoodTimerBox, type TimerMood } from './MoodTimerBox';
 import { PlayerAvatar } from './PlayerAvatar';
 
 interface GameSideHudProps {
@@ -24,6 +26,11 @@ interface GameSideHudProps {
   isExpert?: boolean;
   seg1Fill?: number;
   seg2Fill?: number;
+  showMoodTimer?: boolean;
+  timeLeft?: number;
+  isAITurnForTimer?: boolean;
+  showTimerWarning?: boolean;
+  timerMood?: TimerMood;
   showActions?: boolean;
   onRestart?: () => void;
   onLeaderboard?: () => void;
@@ -50,6 +57,11 @@ export function GameSideHud({
   isExpert = false,
   seg1Fill = 0,
   seg2Fill = 0,
+  showMoodTimer = false,
+  timeLeft = 0,
+  isAITurnForTimer = false,
+  showTimerWarning = false,
+  timerMood = { emoji: '🙂', bg: '#DCFCE7', text: '#166534' },
   showActions = false,
   onRestart,
   onLeaderboard,
@@ -111,6 +123,16 @@ export function GameSideHud({
               </View>
             </View>
           </View>
+          {showMoodTimer ? (
+            <MoodTimerBox
+              variant="stacked"
+              timeLeft={timeLeft}
+              isAITurnForTimer={isAITurnForTimer}
+              showTimerWarning={showTimerWarning}
+              timerMood={timerMood}
+              language={language}
+            />
+          ) : null}
         </View>
       ) : null}
 
@@ -138,7 +160,7 @@ export function GameSideHud({
             ) : null}
             {onSettings ? (
               <Pressable style={styles.secondaryButton} onPress={onSettings}>
-                <Text style={styles.secondaryButtonText}>{t(language, 'openSettings')}</Text>
+                <Text style={styles.secondaryButtonText}>{t(language, 'settingsNav')}</Text>
               </Pressable>
             ) : null}
             {onToggleMode ? (
@@ -161,6 +183,10 @@ export function GameSideHud({
                 </Pressable>
               </View>
             ) : null}
+            <Text style={styles.versionText}>
+              {t(language, 'appVersion')}
+              {APP_VERSION}
+            </Text>
           </View>
         ) : null}
       </View>
@@ -351,5 +377,11 @@ const styles = StyleSheet.create({
   },
   modeChipTextActive: {
     color: colors.buttonText,
+  },
+  versionText: {
+    marginTop: 8,
+    textAlign: 'center',
+    fontSize: 12,
+    color: colors.textMuted,
   },
 });

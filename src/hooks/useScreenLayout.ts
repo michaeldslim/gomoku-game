@@ -3,7 +3,6 @@ import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PORTRAIT_HORIZONTAL_MARGIN = 16;
-const COMPACT_PLAY_SCREEN_HEIGHT = 880;
 
 export const TABLET_SHORT_EDGE_MIN = 600;
 
@@ -84,7 +83,6 @@ export function useScreenLayout() {
 
   return useMemo(() => {
     const wideLayout = isTabletWideLayout(screenWidth, screenHeight);
-    const isCompactPlayScreen = screenHeight < COMPACT_PLAY_SCREEN_HEIGHT;
     const menuInsets = getMenuLandscapeInsets(screenWidth, screenHeight);
 
     if (wideLayout) {
@@ -103,7 +101,6 @@ export function useScreenLayout() {
         sidePanelWidth,
         boardColumnWidth,
         boardCenterWidth,
-        isCompactPlayScreen,
         ...menuInsets,
       };
     }
@@ -116,7 +113,6 @@ export function useScreenLayout() {
       sidePanelWidth: 0,
       boardColumnWidth,
       boardCenterWidth,
-      isCompactPlayScreen,
       ...menuInsets,
     };
   }, [insets.left, insets.right, screenHeight, screenWidth]);

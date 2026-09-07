@@ -7,6 +7,7 @@ import VictoryPopup from './VictoryPopup';
 import { PromotionOverlay } from './PromotionOverlay';
 import { PlayerAvatar } from './PlayerAvatar';
 import { GameSideHud } from './GameSideHud';
+import { MoodTimerBox } from './MoodTimerBox';
 import type { AvatarId } from '../constants/avatars';
 import { DEFAULT_BG_MUSIC_TRACK_ID, type BgMusicTrackId } from '../constants/bgMusic';
 import { DEFAULT_AI_AVATAR_ID, DEFAULT_PLAYER_AVATAR_ID } from '../constants/avatars';
@@ -71,7 +72,7 @@ const Game: React.FC<GameProps> = ({
   onCareer,
 }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const { isWideLayout, boardColumnWidth, boardCenterWidth, sidePanelWidth, isCompactPlayScreen } =
+  const { isWideLayout, boardColumnWidth, boardCenterWidth, sidePanelWidth } =
     useScreenLayout();
   const { careerState, loaded: careerLoaded, recordMatchResult } = useCareer();
   const ct = createCareerTranslate(language);
@@ -365,34 +366,17 @@ const Game: React.FC<GameProps> = ({
   const isHumanTurn = winner === null && currentPlayer === HUMAN_PLAYER;
   const isOpponentTurn = winner === null && currentPlayer === AI_PLAYER;
 
-  const avatarRowBlock = (
-    <View style={[styles.avatarRow, winner === null && styles.avatarRowPlaying]}>
-      <View style={[styles.avatarSlot, isHumanTurn && styles.avatarSlotActive]}>
-        <PlayerAvatar avatarId={playerAvatarId} size="sm" />
-        <Text style={[styles.avatarLabel, isCompactPlayScreen && styles.avatarLabelCompact]}>
-          {vsAI ? t(language, 'playerLabel') : 'P1'}
-        </Text>
-      </View>
-      <View style={[styles.avatarSlot, isOpponentTurn && styles.avatarSlotActive]}>
-        <PlayerAvatar avatarId={aiAvatarId} size="sm" />
-        <Text style={[styles.avatarLabel, isCompactPlayScreen && styles.avatarLabelCompact]}>
-          {vsAI ? t(language, 'aiLabel') : t(language, 'player2Label')}
-        </Text>
-      </View>
-    </View>
-  );
-
-  const compactAvatarSlot = (role: 'human' | 'opponent') => {
+  const mobileAvatarSlot = (role: 'human' | 'opponent') => {
     const isHuman = role === 'human';
     return (
       <View
         style={[
-          styles.avatarSlotCompact,
+          styles.mobileAvatarSlot,
           (isHuman ? isHumanTurn : isOpponentTurn) && styles.avatarSlotActive,
         ]}
       >
         <PlayerAvatar avatarId={isHuman ? playerAvatarId : aiAvatarId} size="xs" />
-        <Text style={styles.avatarLabelCompact} numberOfLines={1}>
+        <Text style={styles.avatarLabel} numberOfLines={1}>
           {isHuman
             ? vsAI
               ? t(language, 'playerLabel')
@@ -405,10 +389,10 @@ const Game: React.FC<GameProps> = ({
     );
   };
 
-  const compactHeaderBlock = (
-    <View style={styles.compactHeader}>
-      {compactAvatarSlot('human')}
-      <View style={styles.compactHeaderCenter}>
+  const mobileHeaderBlock = (
+    <View style={styles.mobileHeader}>
+      {mobileAvatarSlot('human')}
+      <View style={styles.mobileHeaderCenter}>
         <GameStatus
           currentPlayer={currentPlayer}
           winner={winner}
@@ -418,24 +402,14 @@ const Game: React.FC<GameProps> = ({
           compact
         />
       </View>
-      {compactAvatarSlot('opponent')}
+      {mobileAvatarSlot('opponent')}
     </View>
-  );
-
-  const gameStatusBlock = (
-    <GameStatus
-      currentPlayer={currentPlayer}
-      winner={winner}
-      onRestart={handleRestart}
-      onLeaderboard={onLeaderboard}
-      language={language}
-    />
   );
 
   const scoreBannerBlock = (
     <View style={[styles.scoreBanner, careerBadge && styles.scoreBannerWithCareer]}>
       <View style={styles.scoreBannerContent}>
-        <View style={[styles.scoreInfoBlock, showMoodTimer && styles.scoreInfoBlockNarrow]}>
+        <View style={styles.scoreInfoBlock}>
           <View style={styles.scoreRow}>
             <View style={styles.scoreMain}>
               <Text style={styles.scoreLabel}>{t(language, 'score')}</Text>
@@ -488,35 +462,20 @@ const Game: React.FC<GameProps> = ({
           </View>
         </View>
         {showMoodTimer && (
-          <View
-            style={[styles.moodTimerBox, { backgroundColor: isAITurnForTimer ? '#DBEAFE' : timerMood.bg }]}
-            accessibilityLabel={showTimerWarning ? t(language, 'timerExpiryWarning') : undefined}
-          >
-            <Text style={styles.moodEmoji}>
-              {showTimerWarning ? '⚠️' : isAITurnForTimer ? '🦊' : timerMood.emoji}
-            </Text>
-            <Text
-              style={[
-                styles.moodTimeText,
-                {
-                  color: showTimerWarning
-                    ? '#B91C1C'
-                    : isAITurnForTimer
-                      ? '#1E40AF'
-                      : timerMood.text,
-                },
-              ]}
-            >
-              {isAITurnForTimer ? 'AI' : `${timeLeft}s`}
-            </Text>
-          </View>
+          <MoodTimerBox
+            timeLeft={timeLeft}
+            isAITurnForTimer={isAITurnForTimer}
+            showTimerWarning={showTimerWarning}
+            timerMood={timerMood}
+            language={language}
+          />
         )}
       </View>
     </View>
   );
 
   const controlsBlock = (
-    <View style={[styles.switchesContainer, isCompactPlayScreen && styles.switchesContainerCompact]}>
+    <View style={styles.switchesContainer}>
       <View style={styles.controlsWrapper}>
         <TouchableOpacity style={styles.arrowButton} onPress={scrollControlsToStart}>
           <Text style={styles.arrowText}>‹</Text>
@@ -642,6 +601,11 @@ const Game: React.FC<GameProps> = ({
             isExpert={isExpert}
             seg1Fill={seg1Fill}
             seg2Fill={seg2Fill}
+            showMoodTimer={showMoodTimer}
+            timeLeft={timeLeft}
+            isAITurnForTimer={isAITurnForTimer}
+            showTimerWarning={showTimerWarning}
+            timerMood={timerMood}
             showActions
             onRestart={handleRestart}
             onLeaderboard={onLeaderboard}
@@ -678,12 +642,7 @@ const Game: React.FC<GameProps> = ({
 
   return (
     <View style={styles.container}>
-      {isCompactPlayScreen ? compactHeaderBlock : (
-        <>
-          {avatarRowBlock}
-          {gameStatusBlock}
-        </>
-      )}
+      {mobileHeaderBlock}
       {vsAI && scoreBannerBlock}
       {controlsBlock}
       {boardBlock}
@@ -711,7 +670,7 @@ const styles = StyleSheet.create({
   },
   wideSidePanel: {
     backgroundColor: colors.surfaceMuted,
-    paddingTop: 4,
+    paddingTop: 19,
   },
   wideSidePanelLeft: {
     borderRightWidth: 1,
@@ -726,6 +685,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
+    paddingTop: 15,
   },
   landscapeSidebar: {
     flex: 38,
@@ -745,7 +705,7 @@ const styles = StyleSheet.create({
   scoreBanner: {
     alignSelf: 'stretch',
     marginHorizontal: 16,
-    marginTop: 4,
+    marginTop: 19,
     marginBottom: 2,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -789,9 +749,7 @@ const styles = StyleSheet.create({
   },
   scoreInfoBlock: {
     flex: 1,
-  },
-  scoreInfoBlockNarrow: {
-    width: '85%',
+    minWidth: 0,
   },
   scoreRow: {
     flexDirection: 'row',
@@ -867,29 +825,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  moodTimerBox: {
-    width: '15%',
-    borderRadius: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 56,
-  },
-  moodEmoji: {
-    fontSize: 20,
-  },
-  moodTimeText: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
   boardWrapper: {
     flex: 1,
     position: 'relative',
     alignSelf: 'stretch',
     justifyContent: 'center',
     minHeight: 0,
+    marginTop: 15,
   },
   aiThinkingOverlay: {
     position: 'absolute',
@@ -911,16 +853,12 @@ const styles = StyleSheet.create({
   switchesContainer: {
     alignSelf: 'stretch',
     marginHorizontal: 16,
-    marginTop: 4,
-    marginBottom: 10,
-    paddingVertical: 6,
+    marginTop: 19,
+    marginBottom: 6,
+    paddingVertical: 4,
     paddingHorizontal: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 10,
-  },
-  switchesContainerCompact: {
-    marginBottom: 6,
-    paddingVertical: 4,
   },
   controlsWrapper: {
     flexDirection: 'row',
@@ -1013,62 +951,39 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
-  avatarRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 28,
-    marginTop: 8,
-    marginBottom: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    alignSelf: 'stretch',
-  },
-  avatarRowPlaying: {
-    marginBottom: 2,
-  },
-  avatarSlot: {
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
   avatarSlotActive: {
     backgroundColor: colors.goldTint,
     borderWidth: 1,
     borderColor: colors.goldMuted,
   },
   avatarLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
     color: colors.textSecondary,
-  },
-  avatarLabelCompact: {
-    fontSize: 10,
     maxWidth: 52,
     textAlign: 'center',
   },
-  compactHeader: {
+  mobileHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     alignSelf: 'stretch',
     paddingHorizontal: 8,
-    paddingTop: 4,
+    paddingTop: 19,
     paddingBottom: 2,
     gap: 4,
   },
-  compactHeaderCenter: {
+  mobileHeaderCenter: {
     flex: 1,
     minWidth: 0,
   },
-  avatarSlotCompact: {
+  mobileAvatarSlot: {
     alignItems: 'center',
     gap: 2,
     paddingVertical: 4,
     paddingHorizontal: 4,
     borderRadius: 10,
     width: 60,
+    marginTop: 15,
   },
 });
 

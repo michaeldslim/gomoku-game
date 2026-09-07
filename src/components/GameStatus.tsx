@@ -31,12 +31,32 @@ const GameStatus: React.FC<GameStatusProps> = ({
         </Text>
       )}
       <View style={[styles.buttonRow, compact && styles.buttonRowCompact]}>
-        <TouchableOpacity style={styles.button} onPress={onRestart}>
-          <Text style={styles.buttonText}>{t(language, 'restartGame')}</Text>
+        <TouchableOpacity
+          style={[styles.button, compact && styles.buttonCompact]}
+          onPress={onRestart}
+        >
+          <Text
+            style={[styles.buttonText, compact && styles.buttonTextCompact]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
+          >
+            {t(language, 'restartGame')}
+          </Text>
         </TouchableOpacity>
         {onLeaderboard && (
-          <TouchableOpacity style={[styles.button, styles.leaderboardButton]} onPress={onLeaderboard}>
-            <Text style={styles.buttonText}>{t(language, 'leaderboardBtn')}</Text>
+          <TouchableOpacity
+            style={[styles.button, styles.leaderboardButton, compact && styles.buttonCompact]}
+            onPress={onLeaderboard}
+          >
+            <Text
+              style={[styles.buttonText, compact && styles.buttonTextCompact]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
+              {t(language, 'leaderboardBtn')}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -46,7 +66,7 @@ const GameStatus: React.FC<GameStatusProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
+    marginTop: 35,
     marginBottom: 8,
     alignItems: 'center',
   },
@@ -82,16 +102,23 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   buttonRowCompact: {
-    gap: 6,
+    gap: 4,
     marginTop: 2,
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    alignSelf: 'stretch',
+    width: '100%',
   },
   button: {
     backgroundColor: '#457B9D',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 5,
+  },
+  buttonCompact: {
+    flex: 1,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    borderRadius: 4,
+    minWidth: 0,
   },
   leaderboardButton: {
     backgroundColor: '#D4A853',
@@ -100,6 +127,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  buttonTextCompact: {
+    fontSize: 11,
   },
 });
 

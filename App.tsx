@@ -13,6 +13,8 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Game from './src/components/Game';
 import { HomePlayerPreview } from './src/components/HomePlayerPreview';
+import { HomeSideNav } from './src/components/HomeSideNav';
+import { HomeSideStoneSamples } from './src/components/HomeSideStoneSamples';
 import { PhoneLandscapeWarning } from './src/components/PhoneLandscapeWarning';
 import { useCareer } from './src/career/CareerProvider';
 import { getCareerProgressCopy } from './src/career/careerLabels';
@@ -158,7 +160,7 @@ function AppContent() {
     setScreen(settingsFromRef.current);
   }, []);
 
-  const { isTabletLandscape, menuHorizontalInset } = useScreenLayout();
+  const { isWideLayout, sidePanelWidth } = useScreenLayout();
 
   const withOrientationGuide = (node: React.ReactNode) => (
     <>
@@ -262,20 +264,15 @@ function AppContent() {
 
   // Home screen
   const lang = settings.language;
-  return withOrientationGuide(
-    <SafeAreaView style={styles.container}>
-      <View
-        style={[
-          styles.homeFrame,
-          isTabletLandscape && { paddingHorizontal: menuHorizontalInset },
-        ]}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>{t(lang, 'appTitle')}</Text>
-        </View>
+
+  const homeCenterContent = (
+    <>
+      <View style={styles.header}>
+        <Text style={styles.title}>{t(lang, 'appTitle')}</Text>
+      </View>
 
       <ScrollView
-        style={[styles.startContainer, isTabletLandscape && styles.startContainerWide]}
+        style={styles.startContainer}
         contentContainerStyle={styles.startContainerContent}
         showsVerticalScrollIndicator
       >
@@ -288,7 +285,15 @@ function AppContent() {
         />
 
         <InstructionScreen language={lang} standalone={false} />
+      </ScrollView>
+    </>
+  );
 
+  const homePortraitContent = (
+    <>
+      {homeCenterContent}
+
+      <View style={styles.homePortraitNav}>
         <TouchableOpacity
           style={styles.startButton}
           onPress={handleStartGame}
@@ -316,11 +321,38 @@ function AppContent() {
         </TouchableOpacity>
 
         <Text style={styles.versionText}>
-          {t(lang, 'appVersion')}{APP_VERSION}
+          {t(lang, 'appVersion')}
+          {APP_VERSION}
           {USE_TEST_MASTER_THRESHOLD ? ` · TEST master @ ${MASTER_SCORE_THRESHOLD}` : ''}
         </Text>
-      </ScrollView>
       </View>
+    </>
+  );
+
+  return withOrientationGuide(
+    <SafeAreaView style={styles.container}>
+      {isWideLayout ? (
+        <View style={styles.homeLandscapeRow}>
+          <View style={[styles.homeSidePanel, styles.homeSidePanelLeft, { width: sidePanelWidth }]}>
+            <HomeSideStoneSamples language={lang} />
+          </View>
+
+          <View style={styles.homeCenterColumn}>{homeCenterContent}</View>
+
+          <View style={[styles.homeSidePanel, styles.homeSidePanelRight, { width: sidePanelWidth }]}>
+            <HomeSideNav
+              language={lang}
+              isStartingGame={isStartingGame}
+              settingsLoaded={settingsLoaded}
+              onStartGame={() => void handleStartGame()}
+              onLeaderboard={() => goToLeaderboard('home')}
+              onSettings={() => goToSettings('home')}
+            />
+          </View>
+        </View>
+      ) : (
+        <View style={styles.homeFrame}>{homePortraitContent}</View>
+      )}
 
       <StatusBar style="auto" />
     </SafeAreaView>,
@@ -350,6 +382,31 @@ const styles = StyleSheet.create({
   homeFrame: {
     flex: 1,
   },
+  homeLandscapeRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+  homeSidePanel: {
+    backgroundColor: colors.surfaceMuted,
+  },
+  homeSidePanelLeft: {
+    borderRightWidth: 1,
+    borderRightColor: colors.borderMuted,
+  },
+  homeSidePanelRight: {
+    borderLeftWidth: 1,
+    borderLeftColor: colors.borderMuted,
+  },
+  homeCenterColumn: {
+    flex: 1,
+    minWidth: 0,
+  },
+  homePortraitNav: {
+    marginHorizontal: 14,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
   header: {
     paddingTop: 12,
     paddingHorizontal: 20,
@@ -365,12 +422,8 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 4,
     marginHorizontal: 14,
-    marginBottom: 16,
     backgroundColor: colors.background,
     borderRadius: 12,
-  },
-  startContainerWide: {
-    marginHorizontal: 0,
   },
   startContainerContent: {
     padding: 8,
