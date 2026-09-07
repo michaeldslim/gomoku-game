@@ -8,6 +8,7 @@ import { PromotionOverlay } from './PromotionOverlay';
 import { PlayerAvatar } from './PlayerAvatar';
 import { GameSideHud } from './GameSideHud';
 import type { AvatarId } from '../constants/avatars';
+import { DEFAULT_BG_MUSIC_TRACK_ID, type BgMusicTrackId } from '../constants/bgMusic';
 import { DEFAULT_AI_AVATAR_ID, DEFAULT_PLAYER_AVATAR_ID } from '../constants/avatars';
 import { colors } from '../constants/colors';
 import {
@@ -44,6 +45,7 @@ interface GameProps {
   language?: 'ko' | 'en';
   bgMusicEnabled?: boolean;
   bgMusicVolume?: number;
+  bgMusicTrackId?: BgMusicTrackId;
   playerAvatarId?: AvatarId;
   aiAvatarId?: AvatarId;
   careerModeEnabled?: boolean;
@@ -62,6 +64,7 @@ const Game: React.FC<GameProps> = ({
   language = 'ko',
   bgMusicEnabled = false,
   bgMusicVolume = 0.2,
+  bgMusicTrackId = DEFAULT_BG_MUSIC_TRACK_ID,
   playerAvatarId = DEFAULT_PLAYER_AVATAR_ID,
   aiAvatarId = DEFAULT_AI_AVATAR_ID,
   careerModeEnabled = false,
@@ -137,6 +140,7 @@ const Game: React.FC<GameProps> = ({
   const { playStoneSound, playWowSound, resetWinnerSound } = useGameSounds({
     bgMusicEnabled,
     bgMusicVolume,
+    bgMusicTrackId,
     winner,
     vsAI,
     totalScore,

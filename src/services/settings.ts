@@ -1,5 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
+  DEFAULT_BG_MUSIC_TRACK_ID,
+  resolveBgMusicTrackId,
+  type BgMusicTrackId,
+} from '../constants/bgMusic';
+import {
   DEFAULT_AI_AVATAR_ID,
   DEFAULT_PLAYER_AVATAR_ID,
   resolveAvatarId,
@@ -27,6 +32,7 @@ export interface UserSettings {
   expertTopPool: number;
   bgMusicEnabled: boolean;
   bgMusicVolume: number;
+  bgMusicTrackId: BgMusicTrackId;
   language: Language;
   playerAvatarId: AvatarId;
   aiAvatarId: AvatarId;
@@ -104,6 +110,7 @@ const normalizeSettings = (raw: unknown): UserSettings => {
     expertTopPool: clamp(normalizeExpertTopPool(source.expertTopPool), EXPERT_TOP_POOL_HARD, EXPERT_TOP_POOL_EASY),
     bgMusicEnabled: normalizeBgMusicEnabled(source.bgMusicEnabled),
     bgMusicVolume: normalizeBgMusicVolume(source.bgMusicVolume),
+    bgMusicTrackId: resolveBgMusicTrackId(source.bgMusicTrackId),
     language: normalizeLanguage(source.language),
     playerAvatarId: resolveAvatarId(source.playerAvatarId, DEFAULT_PLAYER_AVATAR_ID),
     aiAvatarId: resolveAvatarId(source.aiAvatarId, DEFAULT_AI_AVATAR_ID),
@@ -118,6 +125,7 @@ export const defaultUserSettings = (): UserSettings => ({
   expertTopPool: DEFAULT_EXPERT_TOP_POOL,
   bgMusicEnabled: DEFAULT_BG_MUSIC_ENABLED,
   bgMusicVolume: DEFAULT_BG_MUSIC_VOLUME,
+  bgMusicTrackId: DEFAULT_BG_MUSIC_TRACK_ID,
   language: DEFAULT_LANGUAGE,
   playerAvatarId: DEFAULT_PLAYER_AVATAR_ID,
   aiAvatarId: DEFAULT_AI_AVATAR_ID,

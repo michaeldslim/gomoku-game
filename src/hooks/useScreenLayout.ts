@@ -6,7 +6,6 @@ const PORTRAIT_HORIZONTAL_MARGIN = 16;
 const COMPACT_PLAY_SCREEN_HEIGHT = 880;
 
 export const TABLET_SHORT_EDGE_MIN = 600;
-const TABLET_PORTRAIT_WIDTH_MIN = 768;
 
 const LANDSCAPE_SIDE_PANEL_MIN = 180;
 const LANDSCAPE_SIDE_PANEL_MAX = 280;
@@ -70,13 +69,13 @@ export function getOrientationGuide(
   return null;
 }
 
-/** Tablet: short edge >= 600dp. Wide layout on landscape OR wide tablet portrait. */
+/** Tablet landscape only — portrait uses the same stacked layout as phones. */
 export function isTabletWideLayout(screenWidth: number, screenHeight: number): boolean {
   const shortestSide = Math.min(screenWidth, screenHeight);
   const isTablet = shortestSide >= TABLET_SHORT_EDGE_MIN;
   const isLandscape = screenWidth > screenHeight;
 
-  return isTablet && (isLandscape || screenWidth >= TABLET_PORTRAIT_WIDTH_MIN);
+  return isTablet && isLandscape;
 }
 
 export function useScreenLayout() {

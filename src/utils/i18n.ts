@@ -73,6 +73,7 @@ export interface Translations {
   nicknameHint: string;
   bgMusicLabel: string;
   bgMusicHint: string;
+  bgMusicTrackLabel: string;
   on: string;
   off: string;
   volume: string;
@@ -188,6 +189,7 @@ export const translations: Record<Language, Translations> = {
     nicknameHint: '향후 프로필/리더보드 표시에 사용됩니다.',
     bgMusicLabel: '배경 음악',
     bgMusicHint: '게임 중 배경 음악을 재생합니다.',
+    bgMusicTrackLabel: '배경 음악 선택',
     on: 'ON',
     off: 'OFF',
     volume: '볼륨',
@@ -301,6 +303,7 @@ export const translations: Record<Language, Translations> = {
     nicknameHint: 'Used for future profile/leaderboard labeling.',
     bgMusicLabel: 'Background Music',
     bgMusicHint: 'Play background music during the game.',
+    bgMusicTrackLabel: 'Background track',
     on: 'ON',
     off: 'OFF',
     volume: 'Volume',

@@ -6,7 +6,11 @@ import {
 } from 'expo-audio';
 import { useCallback, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
-import { BM_MP3 } from '../constants/app';
+import {
+  DEFAULT_BG_MUSIC_TRACK_ID,
+  getBgMusicSource,
+  type BgMusicTrackId,
+} from '../constants/bgMusic';
 import { AI_PLAYER } from '../constants/game';
 import { MASTER_SCORE_THRESHOLD } from '../constants/scoring';
 
@@ -18,6 +22,7 @@ const WOW_SOUND = require('../../assets/sounds/wow.mp3');
 interface UseGameSoundsOptions {
   bgMusicEnabled: boolean;
   bgMusicVolume: number;
+  bgMusicTrackId?: BgMusicTrackId;
   winner: number | null;
   vsAI: boolean;
   totalScore: number;
@@ -36,6 +41,7 @@ async function replay(player: AudioPlayer) {
 export function useGameSounds({
   bgMusicEnabled,
   bgMusicVolume,
+  bgMusicTrackId = DEFAULT_BG_MUSIC_TRACK_ID,
   winner,
   vsAI,
   totalScore,
@@ -44,12 +50,13 @@ export function useGameSounds({
   const losePlayer = useAudioPlayer(LOSE_SOUND);
   const stonePlayer = useAudioPlayer(STONE_SOUND);
   const wowPlayer = useAudioPlayer(WOW_SOUND);
-  const bgMusicPlayer = useAudioPlayer(BM_MP3);
+  const bgMusicPlayer = useAudioPlayer(getBgMusicSource(bgMusicTrackId));
   const stoneStatus = useAudioPlayerStatus(stonePlayer);
   const bgMusicStatus = useAudioPlayerStatus(bgMusicPlayer);
 
   const lastPlayedWinnerRef = useRef<number | null>(null);
   const androidWarmedUpRef = useRef(false);
+  const bgMusicTrackRef = useRef(bgMusicTrackId);
 
   useEffect(() => {
     void setAudioModeAsync({
@@ -81,6 +88,15 @@ export function useGameSounds({
   }, [stonePlayer, stoneStatus.isLoaded]);
 
   useEffect(() => {
+    if (bgMusicTrackRef.current === bgMusicTrackId) {
+      return;
+    }
+
+    bgMusicTrackRef.current = bgMusicTrackId;
+    bgMusicPlayer.replace(getBgMusicSource(bgMusicTrackId));
+  }, [bgMusicTrackId, bgMusicPlayer]);
+
+  useEffect(() => {
     bgMusicPlayer.loop = true;
     bgMusicPlayer.volume = bgMusicVolume;
 
@@ -95,6 +111,7 @@ export function useGameSounds({
   }, [
     bgMusicEnabled,
     bgMusicVolume,
+    bgMusicTrackId,
     bgMusicPlayer,
     bgMusicStatus.isLoaded,
     bgMusicStatus.playing,

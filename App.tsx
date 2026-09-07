@@ -187,6 +187,7 @@ function AppContent() {
           language={settings.language}
           bgMusicEnabled={settings.bgMusicEnabled}
           bgMusicVolume={settings.bgMusicVolume}
+          bgMusicTrackId={settings.bgMusicTrackId}
           playerAvatarId={settings.playerAvatarId}
           aiAvatarId={settings.aiAvatarId}
           careerModeEnabled={settings.careerModeEnabled}

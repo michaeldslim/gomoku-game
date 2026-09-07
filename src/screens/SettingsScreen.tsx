@@ -18,6 +18,7 @@ import {
   UserSettings,
 } from '../services/settings';
 import { SHOW_BG_MUSIC_SETTINGS } from '../constants/app';
+import { BG_MUSIC_TRACK_IDS } from '../constants/bgMusic';
 import { AvatarPicker } from '../components/AvatarPicker';
 import { SettingsToggleRow } from '../components/SettingsToggleRow';
 import type { AvatarId } from '../constants/avatars';
@@ -63,6 +64,7 @@ export default function SettingsScreen({ initialSettings, onBack, onSave, onOpen
   const [expertTopPool, setExpertTopPool] = useState(initialSettings.expertTopPool);
   const [bgMusicEnabled, setBgMusicEnabled] = useState(initialSettings.bgMusicEnabled);
   const [bgMusicVolume, setBgMusicVolume] = useState(initialSettings.bgMusicVolume);
+  const [bgMusicTrackId, setBgMusicTrackId] = useState(initialSettings.bgMusicTrackId);
   const [playerAvatarId, setPlayerAvatarId] = useState(initialSettings.playerAvatarId);
   const [aiAvatarId, setAiAvatarId] = useState(initialSettings.aiAvatarId);
   const [careerModeEnabled, setCareerModeEnabled] = useState(initialSettings.careerModeEnabled);
@@ -74,6 +76,7 @@ export default function SettingsScreen({ initialSettings, onBack, onSave, onOpen
     setExpertTopPool(initialSettings.expertTopPool);
     setBgMusicEnabled(initialSettings.bgMusicEnabled);
     setBgMusicVolume(initialSettings.bgMusicVolume);
+    setBgMusicTrackId(initialSettings.bgMusicTrackId);
     setPlayerAvatarId(initialSettings.playerAvatarId);
     setAiAvatarId(initialSettings.aiAvatarId);
     setCareerModeEnabled(initialSettings.careerModeEnabled);
@@ -91,6 +94,7 @@ export default function SettingsScreen({ initialSettings, onBack, onSave, onOpen
         expertTopPool: sanitizeExpertTopPool(expertTopPool),
         bgMusicEnabled,
         bgMusicVolume,
+        bgMusicTrackId,
         language,
         playerAvatarId,
         aiAvatarId,
@@ -251,7 +255,27 @@ export default function SettingsScreen({ initialSettings, onBack, onSave, onOpen
               </TouchableOpacity>
             </View>
             {bgMusicEnabled && (
-              <View style={styles.sliderRow}>
+              <>
+                <Text style={styles.subLabel}>{t(language, 'bgMusicTrackLabel')}</Text>
+                <View style={styles.chipRow}>
+                  {BG_MUSIC_TRACK_IDS.map((trackId) => (
+                    <TouchableOpacity
+                      key={trackId}
+                      style={[styles.chip, bgMusicTrackId === trackId && styles.chipActive]}
+                      onPress={() => {
+                        setBgMusicTrackId(trackId);
+                        void autoSave({ bgMusicTrackId: trackId });
+                      }}
+                    >
+                      <Text
+                        style={[styles.chipText, bgMusicTrackId === trackId && styles.chipTextActive]}
+                      >
+                        {trackId}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={styles.sliderRow}>
                 <Text style={styles.sliderLabel}>{t(language, 'volume')}: {bgMusicVolume.toFixed(1)}</Text>
                 <Slider
                   style={styles.slider}
@@ -270,6 +294,7 @@ export default function SettingsScreen({ initialSettings, onBack, onSave, onOpen
                   thumbTintColor="#457B9D"
                 />
               </View>
+              </>
             )}
           </View>
         )}
@@ -384,6 +409,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#334155',
+    marginBottom: 8,
+  },
+  subLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
+    marginTop: 12,
     marginBottom: 8,
   },
   sectionTitle: {
