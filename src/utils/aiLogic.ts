@@ -19,8 +19,10 @@ const MINIMAX_HUMAN_RESPONSES = 3;
 // keeping it in 1 (hardest) - 5 (easier) range for balance
 const INTERMEDIATE_TOP_POOL_SIZE = 4;
 // Relaxed pick pools for the easiest intermediate settings (wider = weaker).
-const INTERMEDIATE_RELAXED_POOL_4 = 7;
-const INTERMEDIATE_RELAXED_POOL_5 = 10;
+const INTERMEDIATE_RELAXED_POOL_4 = 10;
+const INTERMEDIATE_RELAXED_POOL_5 = 14;
+// Softer defense weight so intermediate AI builds threats instead of only blocking.
+const INTERMEDIATE_DEFENSE_FACTOR = 0.3;
 
 // Expert sub-level pool sizes: 1 (hardest), 2 (medium), 3 (easiest)
 const EXPERT_TOP_POOL_EASY = 3; // default
@@ -276,6 +278,87 @@ const getOpeningBookMove = (
   return scored[0] ? { row: scored[0].row, col: scored[0].col } : null;
 };
 
+interface ScoredMove {
+  row: number;
+  col: number;
+  score: number;
+  offense: number;
+}
+
+const evaluateIntermediateMove = (
+  board: number[][],
+  row: number,
+  col: number,
+  aiPlayer: number,
+): { score: number; offense: number } => {
+  if (!isValidMove(board, row, col)) {
+    return { score: -1, offense: -1 };
+  }
+
+  let offense = 0;
+  let defense = 0;
+  const humanPlayer = aiPlayer === 1 ? 2 : 1;
+  const aiBoard = board.map((r) => [...r]);
+  const humanBoard = board.map((r) => [...r]);
+  aiBoard[row][col] = aiPlayer;
+  humanBoard[row][col] = humanPlayer;
+
+  if (checkWin(aiBoard, row, col, aiPlayer)) {
+    return { score: WIN_SCORE, offense: WIN_SCORE };
+  }
+
+  if (checkWin(humanBoard, row, col, humanPlayer)) {
+    return { score: BLOCK_WIN_SCORE, offense: 0 };
+  }
+
+  for (const [dx, dy] of directions) {
+    const { count: aiCount, openEnds: aiOpenEnds } = evaluateLine(aiBoard, row, col, aiPlayer, dx, dy);
+    offense += getOffensiveScore(aiCount, aiOpenEnds);
+
+    const { count: humanCount, openEnds: humanOpenEnds } = evaluateLine(
+      humanBoard,
+      row,
+      col,
+      humanPlayer,
+      dx,
+      dy,
+    );
+    defense += getDefensiveScore(humanCount, humanOpenEnds);
+  }
+
+  const size = board.length;
+  const centerDistance = Math.abs(row - size / 2) + Math.abs(col - size / 2);
+  offense += (size - centerDistance) * 2;
+
+  const score = offense + defense * INTERMEDIATE_DEFENSE_FACTOR + Math.floor(Math.random() * 5);
+
+  return { score, offense };
+};
+
+const pickIntermediateMove = (moves: ScoredMove[]): ScoredMove => {
+  if (moves.length === 0) {
+    return { row: 0, col: 0, score: 0, offense: 0 };
+  }
+
+  if (moves.length === 1) {
+    return moves[0];
+  }
+
+  // Bias random pick toward offensive moves within the candidate pool.
+  const weights = moves.map((move) => Math.max(40, move.offense + 120));
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  let roll = Math.random() * total;
+
+  for (let i = 0; i < moves.length; i++) {
+    roll -= weights[i];
+    if (roll <= 0) {
+      return moves[i];
+    }
+  }
+
+  return moves[moves.length - 1];
+};
+
 // Evaluate a position for the AI
 const evaluatePosition = (board: number[][], row: number, col: number, aiPlayer: number): number => {
   if (!isValidMove(board, row, col)) return -1;
@@ -501,23 +584,29 @@ export function findBestMove(
   }
 
   if (difficulty === 'intermediate') {
-    const scoredMoves = candidates
-      .map(({ row, col }) => ({ row, col, score: evaluatePosition(board, row, col, aiPlayer) }))
+    const scoredMoves: ScoredMove[] = candidates
+      .map(({ row, col }) => {
+        const { score, offense } = evaluateIntermediateMove(board, row, col, aiPlayer);
+        return { row, col, score, offense };
+      })
       .sort((a, b) => b.score - a.score);
 
-    const criticalMoves = scoredMoves.filter((move) => move.score >= BLOCK_WIN_SCORE);
-    if (criticalMoves.length > 0) {
-      return { row: criticalMoves[0].row, col: criticalMoves[0].col };
+    const mustBlockWin = scoredMoves.filter((move) => move.score >= BLOCK_WIN_SCORE);
+    if (mustBlockWin.length > 0) {
+      return { row: mustBlockWin[0].row, col: mustBlockWin[0].col };
     }
 
-    const urgentDefense = scoredMoves.filter((move) => move.score >= URGENT_DEFENSE_SCORE);
-    if (urgentDefense.length > 0) {
-      return { row: urgentDefense[0].row, col: urgentDefense[0].col };
+    // Only the strictest intermediate setting (pool 1) forces open-four blocks.
+    if (resolvedIntermediateTopPoolSize <= 1) {
+      const urgentDefense = scoredMoves.filter((move) => move.score >= URGENT_DEFENSE_SCORE);
+      if (urgentDefense.length > 0) {
+        return { row: urgentDefense[0].row, col: urgentDefense[0].col };
+      }
     }
 
     const pickCount = resolveIntermediatePickCount(resolvedIntermediateTopPoolSize, scoredMoves.length);
     const topPool = scoredMoves.slice(0, pickCount);
-    const pick = pickRandomMove(topPool);
+    const pick = pickIntermediateMove(topPool);
     return { row: pick.row, col: pick.col };
   }
 
