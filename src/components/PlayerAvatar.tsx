@@ -2,9 +2,10 @@ import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-n
 import { AVATAR_IMAGES, type AvatarId } from '../constants/avatars';
 import { colors } from '../constants/colors';
 
-export type PlayerAvatarSize = 'sm' | 'md' | 'lg' | 'xl';
+export type PlayerAvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 const SIZES: Record<PlayerAvatarSize, number> = {
+  xs: 24,
   sm: 32,
   md: 44,
   lg: 56,

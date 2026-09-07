@@ -420,6 +420,48 @@ const Game: React.FC<GameProps> = ({
     </View>
   );
 
+  const compactAvatarSlot = (role: 'human' | 'opponent') => {
+    const isHuman = role === 'human';
+    return (
+      <View
+        style={[
+          styles.avatarSlotCompact,
+          (isHuman ? isHumanTurn : isOpponentTurn) && styles.avatarSlotActive,
+        ]}
+      >
+        <PlayerAvatar avatarId={isHuman ? playerAvatarId : aiAvatarId} size="xs" />
+        <Text style={styles.avatarLabelCompact} numberOfLines={1}>
+          {isHuman
+            ? vsAI
+              ? t(language, 'playerLabel')
+              : 'P1'
+            : vsAI
+              ? t(language, 'aiLabel')
+              : t(language, 'player2Label')}
+        </Text>
+      </View>
+    );
+  };
+
+  const compactHeaderBlock = (
+    <View style={styles.compactHeader}>
+      {compactAvatarSlot('human')}
+      <View style={styles.compactHeaderCenter}>
+        <GameStatus
+          currentPlayer={currentPlayer}
+          winner={winner}
+          onRestart={handleRestart}
+          onUndo={handleUndo}
+          undoCount={undoCount}
+          onLeaderboard={onLeaderboard}
+          language={language}
+          compact
+        />
+      </View>
+      {compactAvatarSlot('opponent')}
+    </View>
+  );
+
   const gameStatusBlock = (
     <GameStatus
       currentPlayer={currentPlayer}
@@ -577,6 +619,7 @@ const Game: React.FC<GameProps> = ({
         winningCells={winningCells}
         centerTrigger={boardCenterTrigger}
         availableWidth={activeBoardWidth}
+        availableHeight={boardSize.height}
       />
       <Fireworks
         key={fireworksNonce}
@@ -680,8 +723,12 @@ const Game: React.FC<GameProps> = ({
 
   return (
     <View style={styles.container}>
-      {avatarRowBlock}
-      {gameStatusBlock}
+      {isCompactPlayScreen ? compactHeaderBlock : (
+        <>
+          {avatarRowBlock}
+          {gameStatusBlock}
+        </>
+      )}
       {vsAI && scoreBannerBlock}
       {controlsBlock}
       {boardBlock}
@@ -1043,7 +1090,30 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   avatarLabelCompact: {
-    fontSize: 11,
+    fontSize: 10,
+    maxWidth: 52,
+    textAlign: 'center',
+  },
+  compactHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    alignSelf: 'stretch',
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    paddingBottom: 2,
+    gap: 4,
+  },
+  compactHeaderCenter: {
+    flex: 1,
+    minWidth: 0,
+  },
+  avatarSlotCompact: {
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    width: 60,
   },
 });
 

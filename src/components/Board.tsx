@@ -11,13 +11,23 @@ interface BoardProps {
   centerTrigger?: number;
   /** Override the width used for cell-size calculation (e.g. when board lives in a column) */
   availableWidth?: number;
+  /** Actual height of the board wrapper — keeps the scroll viewport constrained on Android */
+  availableHeight?: number;
 }
 
 const BOARD_PADDING = 15;
 const OUTER_LINE_THICKNESS = 4;
 const TABLET_BREAKPOINT = 600;
 
-const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCells, centerTrigger = 0, availableWidth }) => {
+const Board: React.FC<BoardProps> = ({
+  board,
+  onCellPress,
+  lastMove,
+  winningCells,
+  centerTrigger = 0,
+  availableWidth,
+  availableHeight,
+}) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isTablet = Math.min(screenWidth, screenHeight) >= TABLET_BREAKPOINT;
   const isLandscape = screenWidth > screenHeight;
@@ -32,6 +42,16 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
   const maxBoardVisibleHeight = isTablet
     ? (isLandscape ? screenHeight * 0.95 : screenHeight * 0.85)
     : screenHeight * 0.55;
+  const containerVerticalPadding = 20;
+  const containerHorizontalPadding = 32;
+  const viewportWidth = Math.max(0, effectiveWidth - containerHorizontalPadding);
+  const viewportHeight = Math.max(
+    0,
+    Math.min(
+      maxBoardVisibleHeight,
+      (availableHeight ?? maxBoardVisibleHeight) - containerVerticalPadding,
+    ),
+  );
   const horizontalScrollRef = useRef<ScrollView | null>(null);
   const verticalScrollRef = useRef<ScrollView | null>(null);
   const hasAutoCenteredRef = useRef(false);
@@ -168,15 +188,16 @@ const Board: React.FC<BoardProps> = ({ board, onCellPress, lastMove, winningCell
     <View style={styles.container}>
       <ScrollView
         ref={horizontalScrollRef}
-        style={[styles.horizontalScroll, { maxHeight: maxBoardVisibleHeight }]}
+        style={[styles.horizontalScroll, { width: viewportWidth, height: viewportHeight }]}
         contentContainerStyle={styles.scrollContentCenter}
         horizontal
         showsHorizontalScrollIndicator
+        nestedScrollEnabled
         onLayout={handleHorizontalLayout}
       >
         <ScrollView
           ref={verticalScrollRef}
-          style={{ maxHeight: maxBoardVisibleHeight }}
+          style={{ width: boardPixelSize, height: viewportHeight }}
           contentContainerStyle={styles.scrollContentCenter}
           showsVerticalScrollIndicator
           nestedScrollEnabled

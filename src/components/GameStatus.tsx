@@ -10,21 +10,31 @@ interface GameStatusProps {
   undoCount: number;
   onLeaderboard?: () => void;
   language?: Language;
+  compact?: boolean;
 }
 
-const GameStatus: React.FC<GameStatusProps> = ({ currentPlayer, winner, onRestart, onUndo, undoCount, onLeaderboard, language = 'ko' }) => {
+const GameStatus: React.FC<GameStatusProps> = ({
+  currentPlayer,
+  winner,
+  onRestart,
+  onUndo,
+  undoCount,
+  onLeaderboard,
+  language = 'ko',
+  compact = false,
+}) => {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, compact && styles.containerCompact]}>
       {winner === null ? (
-        <Text style={styles.status}>
+        <Text style={[styles.status, compact && styles.statusCompact]}>
           {currentPlayer === 1 ? t(language, 'currentTurnBlack') : t(language, 'currentTurnWhite')}
         </Text>
       ) : (
-        <Text style={styles.winner}>
+        <Text style={[styles.winner, compact && styles.winnerCompact]}>
           {winner === 0 ? t(language, 'draw') : winner === 1 ? t(language, 'blackWins') : t(language, 'whiteWins')}
         </Text>
       )}
-      <View style={styles.buttonRow}>
+      <View style={[styles.buttonRow, compact && styles.buttonRowCompact]}>
         <TouchableOpacity style={styles.button} onPress={onRestart}>
           <Text style={styles.buttonText}>{t(language, 'restartGame')}</Text>
         </TouchableOpacity>
@@ -55,10 +65,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     alignItems: 'center',
   },
+  containerCompact: {
+    marginTop: 0,
+    marginBottom: 0,
+    flex: 1,
+  },
   status: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
+  },
+  statusCompact: {
+    fontSize: 14,
+    marginBottom: 2,
+    textAlign: 'center',
   },
   winner: {
     fontSize: 24,
@@ -66,10 +86,21 @@ const styles = StyleSheet.create({
     color: '#E63946',
     marginBottom: 10,
   },
+  winnerCompact: {
+    fontSize: 18,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
   buttonRow: {
     flexDirection: 'row',
     gap: 10,
     marginTop: 4,
+  },
+  buttonRowCompact: {
+    gap: 6,
+    marginTop: 2,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   button: {
     backgroundColor: '#457B9D',
