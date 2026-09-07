@@ -88,7 +88,6 @@ Xcode Settings → Accounts에 **무료 Apple ID**만 추가하면 됩니다.
 | 항목 | 값 |
 |------|-----|
 | iOS Bundle ID | `com.mike008.gomokugame` |
-| 앱 버전 | `3.0.0` |
 | Android versionCode | `3` |
 | iOS buildNumber | `1` |
 | Xcode workspace | `ios/Gomoku.xcworkspace` |
@@ -177,12 +176,6 @@ Organizer에서 방금 Archive 선택 → **Distribute App**:
 | **Ad Hoc** | 등록된 기기에 직접 설치 | ✅ export |
 | **Development** | 개발 기기 테스트 | ✅ export |
 | **App Store Connect** | TestFlight / App Store | 업로드 (로컬 `.ipa`도 가능) |
-
-권장 저장 경로:
-
-```
-/Users/mikelim/Github/gomoku-game/Gomoku-3.0.0-ios.ipa
-```
 
 ---
 
