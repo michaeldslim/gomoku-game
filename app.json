@@ -3,8 +3,8 @@
     "name": "Gomoku",
     "slug": "gomoku-game",
     "scheme": "gomoku-game",
-    "version": "2.1.2",
-    "orientation": "portrait",
+    "version": "3.0.0",
+    "orientation": "default",
     "icon": "./assets/icon-ios-square.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -22,7 +22,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.mike008.gomokugame"
     },
     "web": {
@@ -30,7 +29,7 @@
     },
     "plugins": [
       "expo-web-browser",
-      "expo-av"
+      "expo-audio"
     ],
     "assetBundlePatterns": [
       "assets/**/*"
@@ -38,7 +37,7 @@
     "updates": {
       "url": "https://u.expo.dev/174f040a-54d5-40cd-927a-c7a304b8d90a"
     },
-    "runtimeVersion": "2.1.2",
+    "runtimeVersion": "3.0.0",
     "extra": {
       "eas": {
         "projectId": "174f040a-54d5-40cd-927a-c7a304b8d90a"

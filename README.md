@@ -16,11 +16,11 @@ A React Native Gomoku (Five in a Row) app built with Expo and TypeScript. Play a
 ### UI & UX
 - **Korean / English** language toggle on the home screen
 - Home instructions, leaderboard, settings
-- Tablet **landscape layout** (sidebar + board column)
+- Tablet **landscape layout** (3-column HUD: player · board · opponent) — **Galaxy Tab primary QA target**
 - Scrollable board on large grids
 
 ### Audio
-- Stone placement, win, lose, and master (wow) sound effects
+- Stone placement, win, lose, and master (wow) sound effects (`expo-audio`)
 - Optional background music with volume control
 
 ### Data (local)
@@ -29,7 +29,7 @@ A React Native Gomoku (Five in a Row) app built with Expo and TypeScript. Play a
 - Score syncs to leaderboard on improvement; master threshold triggers `startFreshRun`
 
 ### Platforms
-- iOS, Android, Web (Expo)
+- iOS, Android, Web (Expo SDK 57)
 
 ## Prerequisites
 
