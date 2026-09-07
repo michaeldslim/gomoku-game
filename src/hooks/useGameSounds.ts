@@ -1,8 +1,19 @@
-import { useEffect, useRef } from 'react';
-import { Audio } from 'expo-av';
+import {
+  setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus,
+  type AudioPlayer,
+} from 'expo-audio';
+import { useCallback, useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import { BM_MP3 } from '../constants/app';
-import { MASTER_SCORE_THRESHOLD } from '../constants/scoring';
 import { AI_PLAYER } from '../constants/game';
+import { MASTER_SCORE_THRESHOLD } from '../constants/scoring';
+
+const WIN_SOUND = require('../../assets/sounds/win.mp3');
+const LOSE_SOUND = require('../../assets/sounds/lose.mp3');
+const STONE_SOUND = require('../../assets/sounds/stone.mp3');
+const WOW_SOUND = require('../../assets/sounds/wow.mp3');
 
 interface UseGameSoundsOptions {
   bgMusicEnabled: boolean;
@@ -12,6 +23,16 @@ interface UseGameSoundsOptions {
   totalScore: number;
 }
 
+async function replay(player: AudioPlayer) {
+  try {
+    await player.seekTo(0);
+  } catch {
+    // seek can fail if the player is still buffering
+  }
+
+  player.play();
+}
+
 export function useGameSounds({
   bgMusicEnabled,
   bgMusicVolume,
@@ -19,144 +40,65 @@ export function useGameSounds({
   vsAI,
   totalScore,
 }: UseGameSoundsOptions) {
-  const winSoundRef = useRef<Audio.Sound | null>(null);
-  const loseSoundRef = useRef<Audio.Sound | null>(null);
-  const stoneSoundRef = useRef<Audio.Sound | null>(null);
-  const wowSoundRef = useRef<Audio.Sound | null>(null);
-  const bgMusicRef = useRef<Audio.Sound | null>(null);
-  const lastPlayedWinnerRef = useRef<number | null>(null);
-  const soundsReadyRef = useRef<boolean>(false);
-  const soundsReadyPromiseRef = useRef<Promise<void> | null>(null);
-  const resolveSoundsReadyRef = useRef<(() => void) | null>(null);
+  const winPlayer = useAudioPlayer(WIN_SOUND);
+  const losePlayer = useAudioPlayer(LOSE_SOUND);
+  const stonePlayer = useAudioPlayer(STONE_SOUND);
+  const wowPlayer = useAudioPlayer(WOW_SOUND);
+  const bgMusicPlayer = useAudioPlayer(BM_MP3);
+  const stoneStatus = useAudioPlayerStatus(stonePlayer);
+  const bgMusicStatus = useAudioPlayerStatus(bgMusicPlayer);
 
-  if (!soundsReadyPromiseRef.current) {
-    soundsReadyPromiseRef.current = new Promise<void>((resolve) => {
-      resolveSoundsReadyRef.current = resolve;
-    });
-  }
+  const lastPlayedWinnerRef = useRef<number | null>(null);
+  const androidWarmedUpRef = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-
-        const winResult = await Audio.Sound.createAsync(
-          require('../../assets/sounds/win.mp3'),
-          { shouldPlay: false },
-        );
-        const loseResult = await Audio.Sound.createAsync(
-          require('../../assets/sounds/lose.mp3'),
-          { shouldPlay: false },
-        );
-        const stoneResult = await Audio.Sound.createAsync(
-          require('../../assets/sounds/stone.mp3'),
-          { shouldPlay: false },
-        );
-        const wowResult = await Audio.Sound.createAsync(
-          require('../../assets/sounds/wow.mp3'),
-          { shouldPlay: false },
-        );
-
-        if (cancelled) {
-          await winResult.sound.unloadAsync();
-          await loseResult.sound.unloadAsync();
-          await stoneResult.sound.unloadAsync();
-          await wowResult.sound.unloadAsync();
-          return;
-        }
-
-        winSoundRef.current = winResult.sound;
-        loseSoundRef.current = loseResult.sound;
-        stoneSoundRef.current = stoneResult.sound;
-        wowSoundRef.current = wowResult.sound;
-
-        try {
-          await stoneResult.sound.setVolumeAsync(0);
-          await stoneResult.sound.setPositionAsync(0);
-          await stoneResult.sound.playAsync();
-          await new Promise((r) => setTimeout(r, 300));
-          await stoneResult.sound.pauseAsync();
-        } catch {
-          // Ignore warm-up errors
-        } finally {
-          try {
-            await stoneResult.sound.setVolumeAsync(1);
-            await stoneResult.sound.setPositionAsync(0);
-          } catch {
-            // Ignore
-          }
-        }
-
-        soundsReadyRef.current = true;
-        resolveSoundsReadyRef.current?.();
-        resolveSoundsReadyRef.current = null;
-
-        try {
-          const bgResult = await Audio.Sound.createAsync(
-            BM_MP3,
-            { shouldPlay: bgMusicEnabled, isLooping: true, volume: bgMusicVolume },
-          );
-
-          if (cancelled) {
-            await bgResult.sound.stopAsync();
-            await bgResult.sound.unloadAsync();
-            return;
-          }
-
-          bgMusicRef.current = bgResult.sound;
-        } catch {
-          // Background music failed to load
-        }
-      } catch {
-        // Ignore sound loading errors
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      void (async () => {
-        try {
-          if (winSoundRef.current) await winSoundRef.current.unloadAsync();
-          if (loseSoundRef.current) await loseSoundRef.current.unloadAsync();
-          if (stoneSoundRef.current) await stoneSoundRef.current.unloadAsync();
-          if (wowSoundRef.current) await wowSoundRef.current.unloadAsync();
-          if (bgMusicRef.current) {
-            await bgMusicRef.current.stopAsync();
-            await bgMusicRef.current.unloadAsync();
-          }
-        } catch {
-          // Ignore unload errors
-        } finally {
-          winSoundRef.current = null;
-          loseSoundRef.current = null;
-          stoneSoundRef.current = null;
-          wowSoundRef.current = null;
-          bgMusicRef.current = null;
-          soundsReadyRef.current = false;
-          soundsReadyPromiseRef.current = null;
-          resolveSoundsReadyRef.current = null;
-        }
-      })();
-    };
+    void setAudioModeAsync({
+      playsInSilentMode: true,
+      interruptionMode: 'mixWithOthers',
+    });
   }, []);
 
   useEffect(() => {
+    if (Platform.OS !== 'android' || androidWarmedUpRef.current || !stoneStatus.isLoaded) {
+      return;
+    }
+
+    androidWarmedUpRef.current = true;
+
     void (async () => {
       try {
-        if (!bgMusicRef.current) return;
-        if (bgMusicEnabled) {
-          await bgMusicRef.current.setVolumeAsync(bgMusicVolume);
-          await bgMusicRef.current.playAsync();
-        } else {
-          await bgMusicRef.current.pauseAsync();
-        }
+        stonePlayer.volume = 0;
+        stonePlayer.play();
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        stonePlayer.pause();
+        await stonePlayer.seekTo(0);
       } catch {
-        // Ignore
+        // Ignore warm-up errors.
+      } finally {
+        stonePlayer.volume = 1;
       }
     })();
-  }, [bgMusicEnabled, bgMusicVolume]);
+  }, [stonePlayer, stoneStatus.isLoaded]);
+
+  useEffect(() => {
+    bgMusicPlayer.loop = true;
+    bgMusicPlayer.volume = bgMusicVolume;
+
+    if (!bgMusicEnabled) {
+      bgMusicPlayer.pause();
+      return;
+    }
+
+    if (bgMusicStatus.isLoaded && !bgMusicStatus.playing) {
+      bgMusicPlayer.play();
+    }
+  }, [
+    bgMusicEnabled,
+    bgMusicVolume,
+    bgMusicPlayer,
+    bgMusicStatus.isLoaded,
+    bgMusicStatus.playing,
+  ]);
 
   useEffect(() => {
     if (winner === null || winner === 0) {
@@ -170,54 +112,27 @@ export function useGameSounds({
 
     lastPlayedWinnerRef.current = winner;
 
-    void (async () => {
-      try {
-        const shouldPlayLose = vsAI && winner === AI_PLAYER;
-        const soundToPlay = shouldPlayLose
-          ? loseSoundRef.current
-          : totalScore >= MASTER_SCORE_THRESHOLD
-            ? wowSoundRef.current
-            : winSoundRef.current;
+    const shouldPlayLose = vsAI && winner === AI_PLAYER;
+    const player = shouldPlayLose
+      ? losePlayer
+      : totalScore >= MASTER_SCORE_THRESHOLD
+        ? wowPlayer
+        : winPlayer;
 
-        if (!soundToPlay) return;
+    void replay(player);
+  }, [winner, vsAI, totalScore, losePlayer, wowPlayer, winPlayer]);
 
-        await soundToPlay.setPositionAsync(0);
-        await soundToPlay.playAsync();
-      } catch {
-        // Ignore playback errors
-      }
-    })();
-  }, [winner, vsAI, totalScore]);
+  const playStoneSound = useCallback(() => {
+    void replay(stonePlayer);
+  }, [stonePlayer]);
 
-  const playStoneSound = () => {
-    void (async () => {
-      try {
-        if (!soundsReadyRef.current && soundsReadyPromiseRef.current) {
-          await soundsReadyPromiseRef.current;
-        }
-        if (!stoneSoundRef.current) return;
-        await stoneSoundRef.current.replayAsync();
-      } catch {
-        // Ignore playback errors
-      }
-    })();
-  };
+  const playWowSound = useCallback(() => {
+    void replay(wowPlayer);
+  }, [wowPlayer]);
 
-  const playWowSound = () => {
-    void (async () => {
-      try {
-        if (!wowSoundRef.current) return;
-        await wowSoundRef.current.setPositionAsync(0);
-        await wowSoundRef.current.playAsync();
-      } catch {
-        // Ignore playback errors
-      }
-    })();
-  };
-
-  const resetWinnerSound = () => {
+  const resetWinnerSound = useCallback(() => {
     lastPlayedWinnerRef.current = null;
-  };
+  }, []);
 
   return { playStoneSound, playWowSound, resetWinnerSound };
 }
