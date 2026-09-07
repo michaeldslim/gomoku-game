@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AIDifficulty } from '../utils/aiLogic';
 import { MASTER_SCORE_THRESHOLD } from '../constants/scoring';
 import { EXPERT_THRESHOLD, HUMAN_PLAYER, AI_PLAYER } from '../constants/game';
@@ -11,7 +11,6 @@ interface UseScoreProgressionOptions {
   vsAI: boolean;
   onScoreUpdate?: (score: number) => void;
   onStartFreshRun?: (currentScore: number) => Promise<void> | void;
-  undosUsedThisGameRef: MutableRefObject<number>;
   playWowSound: () => void;
 }
 
@@ -22,7 +21,6 @@ export function useScoreProgression({
   vsAI,
   onScoreUpdate,
   onStartFreshRun,
-  undosUsedThisGameRef,
   playWowSound,
 }: UseScoreProgressionOptions) {
   const [totalScore, setTotalScore] = useState<number>(initialScore);
@@ -95,7 +93,7 @@ export function useScoreProgression({
   }, [initialScore]);
 
   const awardHumanWin = useCallback(() => {
-    const gained = Math.max(0, 10 - undosUsedThisGameRef.current);
+    const gained = 10;
     setTotalScore((prev) => {
       const actualGained = Math.min(gained, MASTER_SCORE_THRESHOLD - prev);
       lastWinGainRef.current = actualGained;
@@ -108,7 +106,7 @@ export function useScoreProgression({
       }
       return next;
     });
-  }, [undosUsedThisGameRef]);
+  }, []);
 
   useEffect(() => {
     if (winner !== HUMAN_PLAYER) return;

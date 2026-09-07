@@ -36,7 +36,6 @@ export interface Translations {
   blackWins: string;
   whiteWins: string;
   restartGame: string;
-  undo: string;
   leaderboardBtn: string;
 
   // VictoryPopup
@@ -152,7 +151,6 @@ export const translations: Record<Language, Translations> = {
     blackWins: '흑돌(⚫) 승리!',
     whiteWins: '백돌(⚪) 승리!',
     restartGame: '게임 다시 시작',
-    undo: '무르기',
     leaderboardBtn: '리더보드',
 
     // VictoryPopup
@@ -266,7 +264,6 @@ export const translations: Record<Language, Translations> = {
     blackWins: 'Black(⚫) Wins!',
     whiteWins: 'White(⚪) Wins!',
     restartGame: 'Restart',
-    undo: 'Undo',
     leaderboardBtn: 'Leaderboard',
 
     // VictoryPopup

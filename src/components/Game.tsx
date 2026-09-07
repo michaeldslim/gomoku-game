@@ -84,13 +84,6 @@ const Game: React.FC<GameProps> = ({
   const [lastMove, setLastMove] = useState<{ row: number; col: number } | null>(null);
   const [vsAI, setVsAI] = useState<boolean>(true);
   const [aiThinking, setAiThinking] = useState<boolean>(false);
-  const [boardHistory, setBoardHistory] = useState<Array<{
-    board: number[][];
-    currentPlayer: number;
-    lastMove: { row: number; col: number } | null;
-  }>>([]);
-  const [undoCount, setUndoCount] = useState<number>(3);
-  const undosUsedThisGameRef = useRef<number>(0);
   const [winningCells, setWinningCells] = useState<{ row: number; col: number }[] | null>(null);
   const [boardSize, setBoardSize] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
   const [boardCenterTrigger, setBoardCenterTrigger] = useState(0);
@@ -107,7 +100,6 @@ const Game: React.FC<GameProps> = ({
   const currentPlayerRef = useRef<number>(HUMAN_PLAYER);
   const lastMoveRef = useRef<{ row: number; col: number } | null>(null);
   const controlsScrollRef = useRef<ScrollView | null>(null);
-  const undoGenerationRef = useRef(0);
   const handleTimeUpRef = useRef<() => void>(() => {});
 
   const {
@@ -132,7 +124,6 @@ const Game: React.FC<GameProps> = ({
     vsAI,
     onScoreUpdate,
     onStartFreshRun,
-    undosUsedThisGameRef,
     playWowSound: () => playWowSoundRef.current(),
   });
 
@@ -208,10 +199,6 @@ const Game: React.FC<GameProps> = ({
     if (emptyPositions.length > 0) {
       const randomIndex = Math.floor(Math.random() * emptyPositions.length);
       const { row, col } = emptyPositions[randomIndex];
-      setBoardHistory((prev) => [
-        ...prev,
-        { board: currentBoard.map((r) => [...r]), currentPlayer: player, lastMove: lastMoveRef.current },
-      ]);
       makeMove(row, col, player, currentBoard);
     } else {
       setWinner(0);
@@ -238,12 +225,12 @@ const Game: React.FC<GameProps> = ({
   });
 
   const makeAIMove = useCallback(() => {
-    const turnToken = undoGenerationRef.current;
+    const turnToken = gameGenerationRef.current;
     setAiThinking(true);
 
     aiTimeoutRef.current = setTimeout(() => {
       aiTimeoutRef.current = null;
-      if (turnToken !== undoGenerationRef.current) {
+      if (turnToken !== gameGenerationRef.current) {
         setAiThinking(false);
         return;
       }
@@ -271,7 +258,6 @@ const Game: React.FC<GameProps> = ({
       return;
     }
 
-    setBoardHistory((prev) => [...prev, { board: board.map((r) => [...r]), currentPlayer, lastMove }]);
     makeMove(row, col, currentPlayer, board);
   };
 
@@ -279,7 +265,6 @@ const Game: React.FC<GameProps> = ({
     gameGenerationRef.current += 1;
     setShowPromotionOverlay(false);
     setPromotedRank(null);
-    undoGenerationRef.current += 1;
     cancelPendingAI();
 
     const shouldAIStart = !forceHumanStart && vsAI && winner === AI_PLAYER;
@@ -293,29 +278,8 @@ const Game: React.FC<GameProps> = ({
     setLastMove(null);
     resetWinnerSound();
     resetCelebration();
-    setBoardHistory([]);
-    setUndoCount(3);
-    undosUsedThisGameRef.current = 0;
     setBoardCenterTrigger((prev) => prev + 1);
     resetTimerForTurn(!vsAI || nextStartingPlayer === HUMAN_PLAYER);
-  };
-
-  const handleUndo = () => {
-    if (undoCount <= 0 || boardHistory.length === 0 || winner !== null) return;
-
-    undoGenerationRef.current += 1;
-    cancelPendingAI();
-
-    const prev = boardHistory[boardHistory.length - 1];
-    setBoardHistory((h) => h.slice(0, -1));
-    setBoard(prev.board);
-    setCurrentPlayer(prev.currentPlayer);
-    setLastMove(prev.lastMove);
-    setWinner(null);
-    setWinningCells(null);
-    setUndoCount((c) => c - 1);
-    undosUsedThisGameRef.current += 1;
-    resetTimerForTurn(!vsAI || prev.currentPlayer === HUMAN_PLAYER);
   };
 
   const toggleAIMode = () => {
@@ -398,8 +362,6 @@ const Game: React.FC<GameProps> = ({
           ? t(language, 'blackWins')
           : t(language, 'whiteWins');
 
-  const canUndo = undoCount > 0 && boardHistory.length > 0 && winner === null;
-
   const isHumanTurn = winner === null && currentPlayer === HUMAN_PLAYER;
   const isOpponentTurn = winner === null && currentPlayer === AI_PLAYER;
 
@@ -451,8 +413,6 @@ const Game: React.FC<GameProps> = ({
           currentPlayer={currentPlayer}
           winner={winner}
           onRestart={handleRestart}
-          onUndo={handleUndo}
-          undoCount={undoCount}
           onLeaderboard={onLeaderboard}
           language={language}
           compact
@@ -467,8 +427,6 @@ const Game: React.FC<GameProps> = ({
       currentPlayer={currentPlayer}
       winner={winner}
       onRestart={handleRestart}
-      onUndo={handleUndo}
-      undoCount={undoCount}
       onLeaderboard={onLeaderboard}
       language={language}
     />
@@ -686,9 +644,6 @@ const Game: React.FC<GameProps> = ({
             seg2Fill={seg2Fill}
             showActions
             onRestart={handleRestart}
-            onUndo={handleUndo}
-            undoCount={undoCount}
-            canUndo={canUndo}
             onLeaderboard={onLeaderboard}
             onSettings={onSettings}
             vsAI={vsAI}

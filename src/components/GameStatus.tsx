@@ -6,8 +6,6 @@ interface GameStatusProps {
   currentPlayer: number;
   winner: number | null;
   onRestart: () => void;
-  onUndo: () => void;
-  undoCount: number;
   onLeaderboard?: () => void;
   language?: Language;
   compact?: boolean;
@@ -17,8 +15,6 @@ const GameStatus: React.FC<GameStatusProps> = ({
   currentPlayer,
   winner,
   onRestart,
-  onUndo,
-  undoCount,
   onLeaderboard,
   language = 'ko',
   compact = false,
@@ -38,17 +34,6 @@ const GameStatus: React.FC<GameStatusProps> = ({
         <TouchableOpacity style={styles.button} onPress={onRestart}>
           <Text style={styles.buttonText}>{t(language, 'restartGame')}</Text>
         </TouchableOpacity>
-        {winner === null && (
-          <TouchableOpacity
-            style={[styles.button, styles.undoButton, undoCount === 0 && styles.buttonDisabled]}
-            onPress={onUndo}
-            disabled={undoCount === 0}
-          >
-            <Text style={[styles.buttonText, undoCount === 0 && styles.buttonTextDisabled]}>
-              {t(language, 'undo')} ({undoCount})
-            </Text>
-          </TouchableOpacity>
-        )}
         {onLeaderboard && (
           <TouchableOpacity style={[styles.button, styles.leaderboardButton]} onPress={onLeaderboard}>
             <Text style={styles.buttonText}>{t(language, 'leaderboardBtn')}</Text>
@@ -108,22 +93,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 5,
   },
-  undoButton: {
-    backgroundColor: '#6B7280',
-  },
   leaderboardButton: {
     backgroundColor: '#D4A853',
-  },
-  buttonDisabled: {
-    backgroundColor: '#D1D5DB',
   },
   buttonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
-  },
-  buttonTextDisabled: {
-    color: '#9CA3AF',
   },
 });
 

@@ -26,9 +26,6 @@ interface GameSideHudProps {
   seg2Fill?: number;
   showActions?: boolean;
   onRestart?: () => void;
-  onUndo?: () => void;
-  undoCount?: number;
-  canUndo?: boolean;
   onLeaderboard?: () => void;
   onSettings?: () => void;
   vsAI?: boolean;
@@ -55,9 +52,6 @@ export function GameSideHud({
   seg2Fill = 0,
   showActions = false,
   onRestart,
-  onUndo,
-  undoCount = 0,
-  canUndo = false,
   onLeaderboard,
   onSettings,
   vsAI = true,
@@ -137,17 +131,6 @@ export function GameSideHud({
             <Pressable style={styles.primaryButton} onPress={onRestart}>
               <Text style={styles.primaryButtonText}>{t(language, 'restartGame')}</Text>
             </Pressable>
-            {onUndo ? (
-              <Pressable
-                style={[styles.secondaryButton, !canUndo && styles.buttonDisabled]}
-                onPress={onUndo}
-                disabled={!canUndo}
-              >
-                <Text style={[styles.secondaryButtonText, !canUndo && styles.buttonTextDisabled]}>
-                  {t(language, 'undo')} ({undoCount})
-                </Text>
-              </Pressable>
-            ) : null}
             {onLeaderboard ? (
               <Pressable style={styles.secondaryButton} onPress={onLeaderboard}>
                 <Text style={styles.secondaryButtonText}>{t(language, 'leaderboardBtn')}</Text>
@@ -342,12 +325,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 13,
     fontWeight: '600',
-  },
-  buttonDisabled: {
-    opacity: 0.4,
-  },
-  buttonTextDisabled: {
-    color: colors.textMuted,
   },
   modeRow: {
     flexDirection: 'row',

@@ -8,7 +8,7 @@ A React Native Gomoku (Five in a Row) app built with Expo and TypeScript. Play a
 - **15×15 board** on phones; **23×23** on tablets (size locked per game — rotation does not resize mid-play)
 - **AI mode** (black, human) and **2-player** local mode
 - **Intermediate AI** (score &lt; 80) and **Expert AI** (score ≥ 80), configurable pool sizes in Settings
-- **Scoring**: +10 per win (minus undo penalty); reach **100** for Master celebration and a fresh run
+- **Scoring**: +10 per win; reach **100** for Master celebration and a fresh run
 - **Undo** (3 per game): reverts your move and the AI reply in vs-AI mode
 - **Optional 15s turn timer** with mood indicator and expiry warning before random auto-move
 - Win detection, draw detection, winning-line highlight, fireworks, victory/loss popups
@@ -78,7 +78,7 @@ gomoku-game/
     ├── components/
     │   ├── Board.tsx          # Grid, stones, scroll/center
     │   ├── Game.tsx           # Main game orchestration
-    │   ├── GameStatus.tsx     # Turn, winner, restart, undo, leaderboard
+    │   ├── GameStatus.tsx     # Turn, winner, restart, leaderboard
     │   ├── Stone.tsx
     │   ├── Fireworks.tsx
     │   └── VictoryPopup.tsx
